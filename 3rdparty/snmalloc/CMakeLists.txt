@@ -25,7 +25,7 @@ add_custom_command(
   DEPENDS musl_includes libcxx_includes)
 
 add_enclave_library(
-  oesnmalloc
+  oesnmalloc_obj
   OBJECT
   allocator.cpp
   # List the following as sources of oesnmalloc in order to ensure that
@@ -35,14 +35,14 @@ add_enclave_library(
   __config.h)
 
 if (OE_TRUSTZONE)
-  enclave_link_libraries(oesnmalloc PUBLIC oelibutee_includes)
+  enclave_link_libraries(oesnmalloc_obj PUBLIC oelibutee_includes)
   set(TEE_C_FLAGS ${OE_TZ_TA_C_FLAGS})
 else ()
   set(TEE_C_FLAGS -mcx16)
 endif ()
 
 enclave_compile_options(
-  oesnmalloc
+  oesnmalloc_obj
   PRIVATE
   -I${CMAKE_CURRENT_SOURCE_DIR}/snmalloc/src
   -I${PROJECT_SOURCE_DIR}/include
@@ -64,4 +64,16 @@ enclave_compile_options(
 # other std specification.
 set_source_files_properties(allocator.cpp COMPILE_FLAGS -std=c++17)
 
+maybe_build_using_clangw(oesnmalloc_obj)
+
+add_enclave_library(oesnmalloc $<TARGET_OBJECTS:oesnmalloc_obj>)
 maybe_build_using_clangw(oesnmalloc)
+
+install_enclaves(
+  TARGETS
+  oesnmalloc
+  EXPORT
+  openenclave-targets
+  ARCHIVE
+  DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}/openenclave/enclave)
