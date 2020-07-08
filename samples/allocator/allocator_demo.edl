@@ -1,0 +1,16 @@
+// Copyright (c) Open Enclave SDK contributors.
+// Licensed under the MIT License.
+
+enclave {
+    from "openenclave/edl/syscall.edl" import *;
+    from "platform.edl" import *;
+
+    trusted {
+        public void enclave_configure(
+	    uint32_t seed,                  // seed for random number generatior
+	    uint64_t max_allocation_size);  // Maximum size of each allocated object
+
+        public void enclave_thread(uint64_t iterations);
+    };
+
+};

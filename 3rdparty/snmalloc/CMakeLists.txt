@@ -35,7 +35,7 @@ add_enclave_library(
   __config.h)
 
 if (OE_TRUSTZONE)
-  enclave_link_libraries(oesnmalloc PUBLIC oelibutee_includes)
+  enclave_link_libraries(oesnmalloc_obj PUBLIC oelibutee_includes)
   set(TEE_C_FLAGS ${OE_TZ_TA_C_FLAGS})
 else ()
   set(TEE_C_FLAGS -mcx16)

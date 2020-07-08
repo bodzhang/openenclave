@@ -47,6 +47,11 @@ if (BUILD_ENCLAVES)
 
   install(DIRECTORY helloworld file-encryptor data-sealing switchless
           DESTINATION ${CMAKE_INSTALL_DATADIR}/openenclave/samples)
+
+  if (COMPILER_SUPPORTS_SNMALLOC)
+    install(DIRECTORY allocator
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/openenclave/samples)
+  endif ()
 endif ()
 
 if (OE_SGX)
