@@ -168,34 +168,65 @@ typedef enum _oe_enclave_setting_type
 {
     OE_ENCLAVE_SETTING_CONTEXT_SWITCHLESS = 0xdc73a628,
 #ifdef OE_WITH_EXPERIMENTAL_EEID
-    OE_ENCLAVE_SETTING_CONTEXT_PRE_MEASURED_CONTENT = 0x976a8f66,
+    OE_ENCLAVE_SETTING_CONTEXT_PRE_MEASURED_HASH = 0x976a8f66,
+    OE_ENCLAVE_SETTING_CONTEXT_DYNAMIC_SIZES = 0x976a8f67,
+    OE_ENCLAVE_SETTING_CONTEXT_PRE_MEASURED_DATA = 0x976a8f68,
 #endif
 } oe_enclave_setting_type_t;
 
 /**
  * Structure to keep EEID related options during enclave creation
  */
-typedef struct _oe_enclave_pre_measured_content
+typedef struct _oe_enclave_pre_measured_hash
 {
-    /** Heap, stack, and thread configuration for an EEID enclave instance. */
-    oe_enclave_size_settings_t size_settings;
-
     /** The identity of additional content allowed to be loaded
      *  into the enclave post enclave initialization. The identity is covered
      *  by TEE generated Enclave Attestation Evidence.
      */
     uint8_t config_id[64];
     uint16_t config_svn;
+}
+oe_enclave_pre_measured_hash_t;
 
-    /** Optional config data to be loaded automatically by the enclave runtime.
-      * If provided, the enclave runtime overrides config_id field with the
-      * SHA256 hash of the config data, and verifies the hash value when the
-      * data is loaded.
-      */
+typedef struct _oe_enclave_dynamic_sizes
+{
+    /** Heap, stack, and thread configuration for an EEID enclave instance. */
+    oe_enclave_size_settings_t size_settings;
+}
+oe_enclave_dynamic_sizes_t;
+
+typedef struct _oe_enclave_pre_measured_data
+    /** Config data to be loaded automatically by the enclave runtime.
+     * If provided, the enclave runtime overrides config_id field with the
+     * SHA256 hash of the config data, and verifies the hash value when the
+     * data is loaded.
+     */
     size_t data_size;
     uint8_t data[];
-} oe_enclave_pre_measured_content_t;
+} oe_enclave_pre_measured_data_t;
 ```
+
+Interaction of settings
+-----------------------
+
+The behavior of each of the combinations of settings is as follows (x meaning
+enabled):
+
+| DYN | CONF | EEID | Behavior
+|-----|------|------|-----------------------------------
+|  -  |   -  |   -  | Normal Open Enclave
+|  -  |   -  |   x  | EEID
+|  -  |   x  |   -  | Icelake: native config_id; others: empty EEID
+|  -  |   x  |   x  | Icelake: native config_id + EEID; others: EEID (hash match enforced)
+|  x  |   -  |   -  | empty EEID
+|  x  |   -  |   x  | EEID
+|  x  |   x  |   -  | Icelake: native config_id + empty EEID; others: empty EEID
+|  x  |   x  |   x  | Icelake: native config_id + EEID; others: EEID (hash match enforced)
+
+Where the EEID data is empty (data size is 0), a match between the hash of
+the empty data and the config_id (if present) is not enforced.
+
+
 
 Supporting heap/stack size and #TCS specified at enclave signing time or loading time
 -------------------------------------------------------------------------------------
@@ -371,7 +402,7 @@ config_id/config_svn as well as other enclave identity information, extracted
 from the HW generated enclave attestation data. The low level implementation
 difference between EEID based solution and SGX KSS feature based solution is not
 exposed to the Relying Party.
-  
+
 Authors
 -------
 
