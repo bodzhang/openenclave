@@ -36,10 +36,11 @@ int secure_str_patching(const char* src, char* dst, size_t dst_length)
     return rval;
 }
 
-OE_SET_ENCLAVE_SGX(
+OE_SET_ENCLAVE_SGX_0_BASE(
     1,    /* ProductID */
     1,    /* SecurityVersion */
     true, /* Debug */
     1024, /* NumHeapPages */
     256,  /* NumStackPages */
-    4);   /* NumTCS */
+    4,    /* NumTCS */
+    65536);

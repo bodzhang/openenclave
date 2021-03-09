@@ -39,8 +39,8 @@ typedef struct oe_sgx_enclave_config_t
     uint16_t product_id;
     uint16_t security_version;
 
-    /* Padding to make packed and unpacked size the same */
-    uint32_t padding;
+    /* Flag to indicate 0-base enclave, keeping alignment */
+    uint32_t flag_0_base;
 
     uint8_t family_id[16];
     uint8_t extended_product_id[16];
@@ -49,6 +49,9 @@ typedef struct oe_sgx_enclave_config_t
 
     /* XSave Feature Request Mask */
     uint64_t xfrm;
+
+    /* 0-base enclave start addr */
+    uint64_t start_addr;
 } oe_sgx_enclave_config_t;
 
 /* Extends oe_enclave_properties_header_t base type */
@@ -114,10 +117,12 @@ typedef struct _oe_sgx_enclave_properties
     EXTENDED_PRODUCT_ID,                                                  \
     FAMILY_ID,                                                            \
     ALLOW_DEBUG,                                                          \
-    REQUIRE_KSS,                                                            \
+    REQUIRE_KSS,                                                          \
     HEAP_PAGE_COUNT,                                                      \
     STACK_PAGE_COUNT,                                                     \
-    TCS_COUNT)                                                            \
+    TCS_COUNT,                                                            \
+    FLAG_ZERO_BASE,                                                       \
+    ENCLAVE_START_ADDR)                                                   \
     OE_INFO_SECTION_BEGIN                                                 \
     volatile const oe_sgx_enclave_properties_t oe_enclave_properties_sgx = \
     {                                                                     \
@@ -136,10 +141,11 @@ typedef struct _oe_sgx_enclave_properties
         {                                                                 \
             .product_id = PRODUCT_ID,                                     \
             .security_version = SECURITY_VERSION,                         \
-            .padding = 0,                                                 \
+            .flag_0_base = FLAG_ZERO_BASE,                                                 \
             .family_id = FAMILY_ID,                                       \
             .extended_product_id = EXTENDED_PRODUCT_ID,                   \
-            .attributes = OE_MAKE_ATTRIBUTES(ALLOW_DEBUG, REQUIRE_KSS)    \
+            .attributes = OE_MAKE_ATTRIBUTES(ALLOW_DEBUG, REQUIRE_KSS),   \
+            .start_addr = ENCLAVE_START_ADDR                              \
         },                                                                \
         .image_info =                                                     \
         {                                                                 \
@@ -186,7 +192,49 @@ typedef struct _oe_sgx_enclave_properties
     false,                                                                \
     HEAP_PAGE_COUNT,                                                      \
     STACK_PAGE_COUNT,                                                     \
-    TCS_COUNT)
+    TCS_COUNT,                                                            \
+    0,                                                                    \
+    0)
+
+/**
+ * Defines the SGX properties for an 0-base enclave without KSS properties
+ *
+ * Maps to _OE_SET_ENCLAVE_SGX_IMPL with zero arrays for FAMILY_ID
+ * and EXTENDED_PRODUCT_ID and false for REQUIRE_KSS
+ * @param[in] PRODUCT_ID ISV assigned Product ID (ISVPRODID) to use in the
+ * enclave signature
+ * @param[in] SECURITY_VERSION ISV assigned Security Version number (ISVSVN)
+ * to use in the enclave signature
+ * @param[in] ALLOW_DEBUG If true, allows the enclave to be created with
+ * OE_ENCLAVE_FLAG_DEBUG and debugged at runtime
+ * @param[in] HEAP_PAGE_COUNT Number of heap pages to allocate in the enclave
+ * @param[in] STACK_PAGE_COUNT Number of stack pages per thread to reserve in
+ * the enclave
+ * @param[in] TCS_COUNT Number of concurrent threads in an enclave to support
+ * @param[in] ENCLAVE_START_ADDR start address of the committed Enclave EPC
+ * pages
+ */
+
+#define OE_SET_ENCLAVE_SGX_0_BASE(                                        \
+    PRODUCT_ID,                                                           \
+    SECURITY_VERSION,                                                     \
+    ALLOW_DEBUG,                                                          \
+    HEAP_PAGE_COUNT,                                                      \
+    STACK_PAGE_COUNT,                                                     \
+    TCS_COUNT,                                                            \
+    ENCLAVE_START_ADDR)                                                   \
+ _OE_SET_ENCLAVE_SGX_IMPL(                                                \
+    PRODUCT_ID,                                                           \
+    SECURITY_VERSION,                                                     \
+    {0},                                                                  \
+    {0},                                                                  \
+    ALLOW_DEBUG,                                                          \
+    false,                                                                \
+    HEAP_PAGE_COUNT,                                                      \
+    STACK_PAGE_COUNT,                                                     \
+    TCS_COUNT,                                                            \
+    1,                                                                    \
+    ENCLAVE_START_ADDR)
 
 /**
  * Defines the SGX properties for an enclave with KSS properties
@@ -225,8 +273,53 @@ typedef struct _oe_sgx_enclave_properties
     true,                                                                 \
     HEAP_PAGE_COUNT,                                                      \
     STACK_PAGE_COUNT,                                                     \
-    TCS_COUNT)
+    TCS_COUNT,                                                            \
+    0,                                                                    \
+    0)
 
+/**
+ * Defines the SGX properties for an 0-base enclave with KSS properties
+ *
+ * Maps to _OE_SET_ENCLAVE_SGX_IMPL and set the KSS attribute bit
+ * @param[in] PRODUCT_ID ISV assigned Product ID (ISVPRODID) to use in the
+ * enclave signature
+ * @param[in] SECURITY_VERSION ISV assigned Security Version number (ISVSVN)
+ * to use in the enclave signature
+ * @param[in] EXTENDED_PRODUCT_ID ISV assigned Extended Product ID (ISVEXTPRODID)
+ *  to use in the enclave signature
+ * @param[in] FAMILY_ID ISV assigned Product Family ID (ISVFAMILYID)
+ * to use in the enclave signature
+ * @param[in] ALLOW_DEBUG If true, allows the enclave to be created with
+ * OE_ENCLAVE_FLAG_DEBUG and debugged at runtime
+ * @param[in] HEAP_PAGE_COUNT Number of heap pages to allocate in the enclave
+ * @param[in] STACK_PAGE_COUNT Number of stack pages per thread to reserve in
+ * the enclave
+ * @param[in] TCS_COUNT Number of concurrent threads in an enclave to support
+ * @param[in] ENCLAVE_START_ADDR start address of the committed Enclave EPC
+ * pages
+ */
+ #define OE_SET_ENCLAVE_SGX_KSS_0_BASE(                                   \
+    PRODUCT_ID,                                                           \
+    SECURITY_VERSION,                                                     \
+    EXTENDED_PRODUCT_ID,                                                  \
+    FAMILY_ID,                                                            \
+    ALLOW_DEBUG,                                                          \
+    HEAP_PAGE_COUNT,                                                      \
+    STACK_PAGE_COUNT,                                                     \
+    TCS_COUNT,                                                            \
+    ENCLAVE_START_ADDR)                                                   \
+ _OE_SET_ENCLAVE_SGX_IMPL(                                                \
+    PRODUCT_ID,                                                           \
+    SECURITY_VERSION,                                                     \
+    EXTENDED_PRODUCT_ID,                                                  \
+    FAMILY_ID,                                                            \
+    ALLOW_DEBUG,                                                          \
+    true,                                                                 \
+    HEAP_PAGE_COUNT,                                                      \
+    STACK_PAGE_COUNT,                                                     \
+    TCS_COUNT,                                                            \
+    1,                                                                    \
+    ENCLAVE_START_ADDR)
 // clang-format on
 
 #endif /* _OE_BITS_SGX_SGXPROPERTIES_H */

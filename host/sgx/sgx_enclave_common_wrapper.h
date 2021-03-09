@@ -35,7 +35,8 @@ typedef enum
 } enclave_page_properties_t;
 
 void* oe_sgx_enclave_create(
-    void* base_address,
+    bool zero_base,
+    void* start_address,
     size_t virtual_size,
     size_t initial_commit,
     uint32_t type,

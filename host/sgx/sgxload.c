@@ -324,6 +324,7 @@ oe_result_t oe_sgx_create_enclave(
     oe_result_t result = OE_UNEXPECTED;
     void* base = NULL;
     sgx_secs_t* secs = NULL;
+    size_t secs_enclave_size = enclave_size;
 
     if (enclave_addr)
         *enclave_addr = 0;
@@ -359,8 +360,13 @@ oe_result_t oe_sgx_create_enclave(
 #endif // OEHOSTMR
     }
 
+    if (context->zero_base_enclave)
+    {
+        secs_enclave_size =
+            oe_round_u64_to_pow2(enclave_commit_size + context->start_addr);
+    }
     /* Create SECS structure */
-    if (!(secs = _new_secs((uint64_t)base, enclave_size, context)))
+    if (!(secs = _new_secs((uint64_t)base, secs_enclave_size, context)))
         OE_RAISE(OE_OUT_OF_MEMORY);
 
     /* Measure this operation */
@@ -375,15 +381,19 @@ oe_result_t oe_sgx_create_enclave(
     else if (oe_sgx_is_simulation_load_context(context))
     {
         /* Simulate enclave creation */
-        context->sim.addr = (void*)secs->base;
-        context->sim.size = secs->size;
+        context->sim.addr = 0;
+        context->sim.size = enclave_size;
     }
     else
     {
         uint32_t enclave_error;
+        void* start_addr = NULL; /* Let OS choose the enclave base address */
+        if (context->zero_base_enclave)
+            start_addr = (void*)context->start_addr;
         void* base = oe_sgx_enclave_create(
-            NULL, /* Let OS choose the enclave base address */
-            secs->size,
+            context->zero_base_enclave,
+            start_addr,
+            enclave_size,
             enclave_commit_size,
             ENCLAVE_TYPE_SGX1,
             (const void*)secs,
@@ -396,7 +406,14 @@ oe_result_t oe_sgx_create_enclave(
                 "enclave_create with ENCLAVE_TYPE_SGX1 type failed (err=%#x)",
                 enclave_error);
 
-        secs->base = (uint64_t)base;
+        if (context->zero_base_enclave && base && (base != start_addr))
+        {
+            OE_RAISE_MSG(
+                OE_PLATFORM_ERROR,
+                "enclave_create with 0-base request failed to reserve the "
+                "required start addr (err=%#x)",
+                enclave_error);
+        }
     }
 #endif // OEHOSTMR
     *enclave_addr = base ? (uint64_t)base : secs->base;
@@ -551,8 +568,16 @@ oe_result_t oe_sgx_load_enclave_data(
 #endif /* defined(OE_TRACE_MEASURE) */
 
     /* Measure this operation */
-    OE_CHECK(oe_sgx_measure_load_enclave_data(
-        &context->hash_context, base, addr, src, flags, extend));
+    if (context->zero_base_enclave)
+    {
+        OE_CHECK(oe_sgx_measure_load_enclave_data(
+            &context->hash_context, 0, addr, src, flags, extend));
+    }
+    else
+    {
+        OE_CHECK(oe_sgx_measure_load_enclave_data(
+            &context->hash_context, base, addr, src, flags, extend));
+    }
 
     if (context->type == OE_SGX_LOAD_TYPE_MEASURE)
     {
