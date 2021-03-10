@@ -414,6 +414,7 @@ oe_result_t oe_sgx_create_enclave(
                 "required start addr (err=%#x)",
                 enclave_error);
         }
+        secs->base = (uint64_t)base;
     }
 #endif // OEHOSTMR
     *enclave_addr = base ? (uint64_t)base : secs->base;

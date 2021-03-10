@@ -43,4 +43,4 @@ OE_SET_ENCLAVE_SGX_0_BASE(
     1024, /* NumHeapPages */
     256,  /* NumStackPages */
     4,    /* NumTCS */
-    65536);
+    64*1024*1024);
