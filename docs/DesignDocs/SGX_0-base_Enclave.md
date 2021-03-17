@@ -176,16 +176,21 @@ in the `oe_sgx_load_context` input, the function will invoke either the regular
 `libsgx_enclave_common.so` of the Intel SGX SW stack.
 
 In `_enclave_create_fixed_base(...)`, the implementation attempts to reserve the
-virtual memory at the requested `start_addr` and set `secs.base` as the
+virtual memory at the requested `start_addr` and set `SECS.BASEADDR` as the
 requested value of 0. If the operations are successful, the returned enclave
 start address should match the requested `start_addr`.
 
-With `secs.base` as zero, and the enclave start address not matching secs.base,
-the enclave EPC page virtual address offset used in `EADD` instruction should be
-calculated based on secs.base. The offset calculation for `EADD` instruction
-is handled in the `libsgx_enclave_common.so` layer or the SGX driver layer. In
-the OE SDK, only `oe_sgx_measure_load_enclave_data(...)` call flow used during
-enclave signing needs to be adjusted to address the offset calculation.
+With `SECS.BASEADDR` as zero, and the enclave start address not matching
+`SECS.BASEADDR`, the enclave EPC page virtual address offset used in `EADD`
+instruction should be calculated based on `SECS.BASEADDR`. The offset
+calculation for `EADD` instruction is handled in the `libsgx_enclave_common.so`
+layer or the SGX driver layer. In the OE SDK, only
+`oe_sgx_measure_load_enclave_data(...)` call flow used during enclave signing
+needs to be adjusted to address the offset calculation. In the SGX `TCS` page,
+several fields are defined as offset value from `SECS.BASEADDR`. OE SDK's
+`_add_control_pages(...)` function needs to take into account that 0-base
+enclave's `SECS.BASEADDR` is 0, not `start_addr`, when filling in the SGX `TCS`
+page.
 
 ## Authors
 
