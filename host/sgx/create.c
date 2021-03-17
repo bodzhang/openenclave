@@ -253,6 +253,15 @@ static oe_result_t _add_control_pages(
         tcs->fsbase =
             *vaddr + (tls_page_count + OE_SGX_TCS_CONTROL_PAGES) * OE_PAGE_SIZE;
 
+        /* For 0-based Enclave,SECS.BASEADDR =0, instead of enclave_addr, need
+         * to adjust theoffset fields.
+         */
+        if (context->zero_base_enclave)
+        {
+            tcs->ossa += enclave_addr;
+            tcs->oentry += enclave_addr;
+            tcs->fsbase += enclave_addr;
+        }
         /* The existing Windows SGX enclave debugger finds the start of the
          * thread data by assuming that it is located at the start of the GS
          * segment. i.e. it adds the enclave base address and the offset to the
