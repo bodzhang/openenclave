@@ -381,7 +381,7 @@ oe_result_t oe_sgx_create_enclave(
     else if (oe_sgx_is_simulation_load_context(context))
     {
         /* Simulate enclave creation */
-        context->sim.addr = 0;
+        context->sim.addr = (void*)secs->base;
         context->sim.size = enclave_size;
     }
     else
