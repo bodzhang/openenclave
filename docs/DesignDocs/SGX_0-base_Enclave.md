@@ -171,14 +171,14 @@ struct _oe_sgx_load_context
 ```
 
 In `oe_sgx_create_enclave(...)` function, based on `zero_base_enclave` setting
-in the `oe_sgx_load_context` input, the function will invoke either the regular
-`_enclave_create(...)` API or a new `_enclave_create_fixed_base(...)` API of
-`libsgx_enclave_common.so` of the Intel SGX SW stack.
+in the `oe_sgx_load_context` input, the function will invoke
+`libsgx_enclave_common.so` of the Intel SGX SW stack to create a regular SGX
+Enclave or a SGX Enclave with a fixed base of 0.
 
-In `_enclave_create_fixed_base(...)`, the implementation attempts to reserve the
-virtual memory at the requested `start_addr` and set `SECS.BASEADDR` as the
-requested value of 0. If the operations are successful, the returned enclave
-start address should match the requested `start_addr`.
+When creating an SGX Enclave with a fixed base,  `libsgx_enclave_common.so`
+attempts to reserve the virtual memory at the requested `start_addr` and set
+`SECS.BASEADDR` as the requested value of 0. If the operations are successful,
+the returned enclave start address should match the requested `start_addr`.
 
 With `SECS.BASEADDR` as zero, and the enclave start address not matching
 `SECS.BASEADDR`, the enclave EPC page virtual address offset used in `EADD`
