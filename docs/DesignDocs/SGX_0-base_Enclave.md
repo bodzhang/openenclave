@@ -33,7 +33,9 @@ quite often will not fill up the full Enclave linear address range. In the
 following discussion, the minimum linear address of the committed Enclave pages
 is denoted as `ENCLAVE_START` and the linear address right before the
 uncommitted pages at the end of the Enclave linear address range is denoted as
-`ENCLAVE_END`.
+`ENCLAVE_END`. An Enclave Loader typically reserves the linear address range
+starting from `ENCLAVE_START`, with the size of `SECS.SIZE`, using OS memory
+manager APIs, before committing EPC pages to the Enclave.
 
 From the OS and SGX App host side code point of view, any committed Enclave
 pages between `ENCLAVE_START` and `ENCLAVE_END` are not accessible, protected by
@@ -53,7 +55,8 @@ behavior relies on OS collaboration. A malicious OS can create a Page Table
 entry for the 0-page (virtual address). In that case, enclave code's access to
 the 0-page, including dereference virtual address 0, will not trigger a Page
 Fault. As a result, NullPointerException or NullReferenceException behavior
-inside this type of SGX Enclave cannot be guaranteed within the SGX threat model.
+inside this type of SGX Enclave cannot be guaranteed within the SGX threat
+model.
 
 With the SGX threat model, without guaranteed NULL pointer dereference exception
 inside the Enclave, when the OS is potentially malicious, many high level
@@ -65,9 +68,9 @@ If the 0-page is within the SGX Enclave linear address range, and no Enclave EPC
 page is committed at address 0, the 0-page becomes an Enclave Guard Page. Even
 if a malicious OS creates a Page Table entry for the guard pages, Enclave code
 access to the guard pages will always trigger a Page Fault. If the untrusted SGX
-Enclave loader EADDs Enclave page to replace the Guard Pages, the Enclave
-measurement will be different from the expected value and the attack will be
-detected.
+Enclave loader EADDs Enclave page to replace the Guard Pages, or does not set
+`SECS.BASEADDR` to 0, as expected, the Enclave measurement will be different
+from the expected value and the attack will be detected.
 
 To include the 0-page within the SGX Enclave linear address range, SECS.BASEADDR
 needs to be set as 0. Effectively, all pages with linear address lower than the
@@ -84,28 +87,53 @@ not in the address range lower than `ENCLAVE_START`.
 ![0-base layout](0-base.PNG "0-base Enclave Memory Layout")
 
 In a typical SGX application, `ENCLAVE_START` is selected by the OS memory
-manager, and `SECS.BASEADDR` is set to match `ENCLAVE_START`. The committed
-Enclave page's linear address offset from SECS.BASEADDR is included in the
-Enclave measurement. In the case that `SECS.BASEADDR` = `ENCLAVE_START`, the OS
-memory manager can place [`ENCLAVE_START`, `ENCLAVE_END`] at different linear
+manager, and `SECS.BASEADDR` is set to match `ENCLAVE_START`. In SGX, the
+committed Enclave page's linear address offset from SECS.BASEADDR is included in
+the Enclave measurement. In the case that `SECS.BASEADDR` = `ENCLAVE_START`, the
+OS memory manager can place [`ENCLAVE_START`, `ENCLAVE_END`] at different linear
 address, and the Enclave measurement will not be affected. With `SECS.BASEADDR`
 set to 0, `ENCLAVE_START` must be a predetermined linear address, selected at
 Enclave signing time. Both Windows and Linux memory manager APIs support
 reserving memory at preferred linear address. Those APIs can be used to support
 placing the 0-base SGX Enclave in the memory location required. Typically, the
-OS memory manager does not allow reserving address below certain threshold.
-For Linux, the threshold is typically 4KB or 64KB, and configurable by the
-system admin. For Windows, the threshold is 64KB. Selecting a `ENCLAVE_START`
-value much higher the typical threshold, especially for Linux, makes sure the
-enclave can be loaded on most systems.
+OS memory manager does not allow reserving address below certain threshold. For
+Linux, the threshold is typically 4KB or 64KB, and configurable by the system
+admin. For Windows, the threshold is 64KB. Selecting a `ENCLAVE_START` value
+much higher than the typical threshold, especially for Linux, makes sure the
+enclave can be loaded on most systems.  The Enclave Loader does not need to
+reserve the linear address range between `SECS.BASEADDR`=0 and `SECS.SIZE` for
+the Enclave. It should reserve the memory range starting from `ENCLAVE_START`,
+in this case, predefined at Enclave signing time, with a size smaller than
+`SECS.SIZE`.
 
-It's possible to support multiple 0-base Enclaves in a single process. Each
-Enclave must have a predetermined unique, non-overlapping [`ENCLAVE_START`,
-`ENCLAVE_END`] range. The ECALL/OCALL marshalling buffer and any shared memory
-an Enclave needs to access must be allocated above the Enclave's `SECS.SIZE`
-value. Running multiple instance of a single 0-base Enclave in a single process
-won't be possible, as each instance must be loaded at exactly the same
-[`ENCLAVE_START`, `ENCLAVE_END`] range to maintain the Enclave measurement.
+It's possible to support multiple 0-base Enclaves in a single process. The SGX
+CPU does not require each Enclave, even in a single process, to have an unique
+Enclave Linear Range, not overlapping with any other Enclaves. The SGX CPU does
+enforce that any EPC page must only belong to a single Enclave, the code inside
+an Enclave can only access EPC pages belong to itself, and any linear address to
+EPC page mapping cannot be changed after the EPC page is added to an Enclave.
+With these policies enforced by the SGX CPU, if a malicious OS  manipulates the
+Page Table Entries and attempts to circumvent Enclave memory access control or
+to trick the code inside an Enclave to access EPC pages belong to another
+Enclave, the attack will be detected and blocked. Within any committed page in a
+process, a normal-behaving OS only allows a single mapping (between the linear
+address and the physical address) for any specific linear address. As a result,
+when running multiple Enclaves within a single process, each Enclave must have a
+unique, non-overlapping [`ENCLAVE_START`, `ENCLAVE_END`] range (linear address
+of each committed EPC pages of an Enclave is within that range), within the
+process. For a 0-base Enclave, The linear address range between
+`SECS.BASEADDR`=0 and `ENCLAVE_START` does not have any committed EPC page, nor
+is reserved by the Enclave Loader. From the OS' point of view, that linear
+address range is available for another 0-base Enclave's reserved memory range,
+as long as the second enclave's [`ENCLAVE_START`, `ENCLAVE_END`] range can fit
+within.  For each 0-base Enclave within a process, the ECALL/OCALL marshalling
+buffer and any shared memory an Enclave needs to access must be allocated above
+the Enclave's `SECS.SIZE` value.
+
+Running multiple instance of a single 0-base Enclave in a single process won't
+be possible, as each instance would has to be loaded at exactly the same
+[`ENCLAVE_START`, `ENCLAVE_END`] range to maintain the Enclave measurement,
+which is not possible within a single process.
 
 ## Support SGX Enclave with SECS.BASEADDR set to 0
 
@@ -165,15 +193,18 @@ struct _oe_sgx_load_context
 
     const oe_config_data_t* config_data;
     bool use_config_id;
+    /* If true, the enclave to be loaded is a 0-base enclave */
     bool zero_base_enclave;
+    /* 0-base enclave start addr, valid only if zero_base_enclave is true  */
     uint64_t start_addr;
 };
 ```
 
 In `oe_sgx_create_enclave(...)` function, based on `zero_base_enclave` setting
 in the `oe_sgx_load_context` input, the function will invoke
-`libsgx_enclave_common.so` of the Intel SGX SW stack to create a regular SGX
-Enclave or a SGX Enclave with a fixed base of 0.
+`libsgx_enclave_common.so` of the Intel SGX SW stack, which is considered part
+of the untrusted SGX Enclave Loader,  to create a regular SGX Enclave or a SGX
+Enclave with a fixed base of 0.
 
 When creating an SGX Enclave with a fixed base,  `libsgx_enclave_common.so`
 attempts to reserve the virtual memory at the requested `start_addr` and set
