@@ -40,7 +40,11 @@ typedef struct oe_sgx_enclave_config_t
     uint16_t security_version;
 
     /* Flag to indicate 0-base enclave, keeping alignment */
-    uint32_t flag_0_base;
+    struct
+    {
+        uint32_t zero_base : 1;
+        uint32_t reserved : 31;
+    } flags;
 
     uint8_t family_id[16];
     uint8_t extended_product_id[16];
@@ -141,7 +145,7 @@ typedef struct _oe_sgx_enclave_properties
         {                                                                 \
             .product_id = PRODUCT_ID,                                     \
             .security_version = SECURITY_VERSION,                         \
-            .flag_0_base = FLAG_ZERO_BASE,                                                 \
+            .flags = {FLAG_ZERO_BASE, 0},                                                 \
             .family_id = FAMILY_ID,                                       \
             .extended_product_id = EXTENDED_PRODUCT_ID,                   \
             .attributes = OE_MAKE_ATTRIBUTES(ALLOW_DEBUG, REQUIRE_KSS),   \

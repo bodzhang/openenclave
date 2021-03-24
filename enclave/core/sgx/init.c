@@ -30,6 +30,12 @@
 
 static void _check_memory_boundaries(void)
 {
+    uint64_t configured_base = 0;
+    if (__oe_is_zero_base(&configured_base))
+    {
+        if (configured_base != (uint64_t)__oe_get_enclave_base())
+            oe_abort();
+    }
     /* This is a tautology! */
     if (!oe_is_within_enclave(__oe_get_enclave_base(), __oe_get_enclave_size()))
         oe_abort();

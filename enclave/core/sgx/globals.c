@@ -156,6 +156,16 @@ const void* __oe_get_enclave_elf_header(void)
     return __oe_get_enclave_base();
 }
 
+bool __oe_is_zero_base(uint64_t* configured_base)
+{
+    if (oe_enclave_properties_sgx.config.flags.zero_base == 1)
+    {
+        *configured_base = oe_enclave_properties_sgx.config.start_addr;
+        return true;
+    }
+    return false;
+}
+
 /*
 **==============================================================================
 **

@@ -887,7 +887,7 @@ oe_result_t oe_sgx_build_enclave(
         &loaded_enclave_pages_size,
         &enclave_size));
 
-    if (props.config.flag_0_base != 0)
+    if (props.config.flags.zero_base != 0)
     {
         context->zero_base_enclave = true;
         context->start_addr = props.config.start_addr;
