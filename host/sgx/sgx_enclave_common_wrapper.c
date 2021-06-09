@@ -21,6 +21,17 @@ static void* (*_enclave_create)(
     size_t info_size,
     uint32_t* enclave_error);
 
+static void* (*_enclave_create_ex)(
+    void* base_address,
+    size_t virtual_size,
+    size_t initial_commit,
+    uint32_t type,
+    const void* info,
+    size_t info_size,
+    const uint32_t ex_features,
+    const void* ex_features_p[32],
+    uint32_t* enclave_error);
+
 static size_t (*_enclave_load_data)(
     void* target_address,
     size_t target_size,
@@ -114,6 +125,8 @@ static void _load_sgx_enclave_common_impl(void)
     {
         OE_CHECK(_lookup_function("enclave_create", (void**)&_enclave_create));
         OE_CHECK(
+            _lookup_function("enclave_create_ex", (void**)&_enclave_create_ex));
+        OE_CHECK(
             _lookup_function("enclave_load_data", (void**)&_enclave_load_data));
         OE_CHECK(_lookup_function(
             "enclave_initialize", (void**)&_enclave_initialize));
@@ -165,6 +178,30 @@ void* oe_sgx_enclave_create(
         type,
         info,
         info_size,
+        enclave_error);
+}
+
+void* oe_sgx_enclave_create_ex(
+    void* base_address,
+    size_t virtual_size,
+    size_t initial_commit,
+    uint32_t type,
+    const void* info,
+    size_t info_size,
+    const uint32_t ex_features,
+    const void* ex_features_p[32],
+    uint32_t* enclave_error)
+{
+    _load_sgx_enclave_common();
+    return _enclave_create_ex(
+        base_address,
+        virtual_size,
+        initial_commit,
+        type,
+        info,
+        info_size,
+        ex_features,
+        ex_features_p,
         enclave_error);
 }
 

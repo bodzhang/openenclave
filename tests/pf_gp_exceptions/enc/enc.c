@@ -73,6 +73,7 @@ OE_SET_ENCLAVE_SGX2(
     {0},   /* FamilyID */
     true,  /* Debug */
     true,  /* CapturePFGPExceptions */
+    false, /* CreateZeroBaseEnclave */
     false, /* RequireKSS */
     1024,  /* NumHeapPages */
     1024,  /* NumStackPages */

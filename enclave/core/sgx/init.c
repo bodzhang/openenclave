@@ -39,6 +39,16 @@ static void _check_memory_boundaries(void)
 
     if (!oe_is_within_enclave(__oe_get_heap_base(), __oe_get_heap_size()))
         oe_abort();
+    if (__oe_get_enclave_create_zero_base_flag())
+    {
+        /*
+         * Make sure that the enclave image address and
+         * configured start address are same.
+         */
+        if (__oe_get_enclave_start_address() !=
+            (uint64_t)__oe_get_enclave_base())
+            oe_abort();
+    }
 }
 
 #ifdef OE_WITH_EXPERIMENTAL_EEID

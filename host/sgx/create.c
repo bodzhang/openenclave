@@ -241,6 +241,10 @@ static oe_result_t _add_control_pages(
         /* Zero-fill the TCS page */
         memset(page, 0, sizeof(*page));
 
+        /* In 0-base enclave, the vaddr starts from the base address 0x0 */
+        uint64_t offset =
+            (context->create_zero_base_enclave ? context->start_addr : 0);
+
         /* Set TCS to pointer to page */
         tcs = (sgx_tcs_t*)page;
 
@@ -248,7 +252,7 @@ static oe_result_t _add_control_pages(
         tcs->flags = 0;
 
         /* SSA resides on page immediately following the TCS page */
-        tcs->ossa = *vaddr + OE_PAGE_SIZE;
+        tcs->ossa = offset + *vaddr + OE_PAGE_SIZE;
 
         /* Used at runtime (set to zero for now) */
         tcs->cssa = 0;
@@ -257,7 +261,7 @@ static oe_result_t _add_control_pages(
         tcs->nssa = 2;
 
         /* The entry point for the program (from ELF) */
-        tcs->oentry = entry;
+        tcs->oentry = offset + entry;
 
         /* FS segment: Used for thread-local variables.
          * The reserved (unused) space in oe_sgx_td_t is used for thread-local
@@ -266,7 +270,8 @@ static oe_result_t _add_control_pages(
          * segment.
          */
         tcs->fsbase =
-            *vaddr + (tls_page_count + OE_SGX_TCS_CONTROL_PAGES) * OE_PAGE_SIZE;
+            offset + *vaddr +
+            (tls_page_count + OE_SGX_TCS_CONTROL_PAGES) * OE_PAGE_SIZE;
 
         /* The existing Windows SGX enclave debugger finds the start of the
          * thread data by assuming that it is located at the start of the GS
@@ -362,6 +367,12 @@ static oe_result_t _calculate_enclave_size(
     *loaded_enclave_pages_size =
         image_size + heap_size +
         (size_settings->num_tcs * (stack_size + tls_size + control_size));
+
+    /* Check if 0-base enclave */
+    if (props->config.flags.create_zero_base_enclave)
+    {
+        *loaded_enclave_pages_size += props->config.start_addr;
+    }
 
     if (enclave_size)
     {
@@ -607,6 +618,18 @@ oe_result_t oe_sgx_validate_enclave_properties(
         result = OE_FAILURE;
         goto done;
     }
+
+    if (properties->config.flags.create_zero_base_enclave)
+        if (!oe_sgx_is_valid_start_addr(properties->config.start_addr))
+        {
+            if (field_name)
+                *field_name = "config.start_addr";
+            OE_TRACE_ERROR(
+                "oe_sgx_is_valid_start_addr failed: start_addr = %lx\n",
+                properties->config.start_addr);
+            result = OE_FAILURE;
+            goto done;
+        }
 
     if (!oe_sgx_is_valid_product_id(properties->config.product_id))
     {
@@ -906,6 +929,12 @@ oe_result_t oe_sgx_build_enclave(
         if (_is_misc_region_supported())
             context->capture_pf_gp_exceptions_enabled = 1;
     }
+
+    /* Check if the enclave is configured with create_zero_base_enclave = 1 */
+    context->create_zero_base_enclave =
+        props.config.flags.create_zero_base_enclave ? 1 : 0;
+
+    context->start_addr = props.config.start_addr;
 
     if (props.config.attributes & OE_SGX_FLAGS_KSS)
     {

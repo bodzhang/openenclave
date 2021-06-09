@@ -83,7 +83,7 @@ oe_result_t oe_sgx_measure_load_enclave_data(
     oe_result_t result = OE_UNEXPECTED;
     uint64_t vaddr = addr - base;
 
-    if (!context || !base || !addr || !src || !flags || addr < base)
+    if (!context || !addr || !src || !flags || addr < base)
         OE_RAISE(OE_INVALID_PARAMETER);
 
     /* Measure EADD */

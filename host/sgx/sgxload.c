@@ -327,8 +327,14 @@ oe_result_t oe_sgx_create_enclave(
     uint64_t* enclave_addr)
 {
     oe_result_t result = OE_UNEXPECTED;
-    void* base = NULL;
+    void *base = NULL, *base_addr = NULL;
     sgx_secs_t* secs = NULL;
+    enclave_elrange_t* enclave_elrange;
+    uint32_t ex_features = 0;
+    void* ex_features_array[32];
+
+    enclave_elrange = (enclave_elrange_t*)malloc(sizeof(enclave_elrange_t));
+    memset(ex_features_array, 0x0, sizeof(ex_features_array));
 
     if (enclave_addr)
         *enclave_addr = 0;
@@ -364,8 +370,30 @@ oe_result_t oe_sgx_create_enclave(
 #endif // OEHOSTMR
     }
 
+    /*
+     * Load desired enclave start address. NOTE: Currently, this value is NULL
+     * when zero base enclave is not enabled. Also, base_addr has to be a
+     * multiple of OE_SE_PAGE_SIZE.
+     */
+    base_addr = (void*)context->start_addr;
+    if ((uint64_t)base_addr & OE_SE_PAGE_SIZE_MASK)
+    {
+        OE_RAISE(OE_INVALID_PARAMETER);
+    }
+
+    if (context->create_zero_base_enclave)
+    {
+        enclave_elrange->enclave_image_address = (uint64_t)base_addr;
+        enclave_elrange->elrange_start_address = (uint64_t)OE_ADDRESS_ZERO;
+        enclave_elrange->elrange_size = enclave_size;
+
+        ex_features = ENCLAVE_CREATE_EX_EL_RANGE;
+        ex_features_array[ENCLAVE_CREATE_EX_EL_RANGE_BIT_IDX] = enclave_elrange;
+    }
+
     /* Create SECS structure */
-    if (!(secs = _new_secs((uint64_t)base, enclave_size, context)))
+    // TODO: Need to maybe modify
+    if (!(secs = _new_secs((uint64_t)OE_ADDRESS_ZERO, enclave_size, context)))
         OE_RAISE(OE_OUT_OF_MEMORY);
 
     /* Measure this operation */
@@ -385,14 +413,16 @@ oe_result_t oe_sgx_create_enclave(
     }
     else
     {
-        uint32_t enclave_error;
-        void* base = oe_sgx_enclave_create(
-            NULL, /* Let OS choose the enclave base address */
+        uint32_t enclave_error = 0;
+        base = oe_sgx_enclave_create_ex(
+            base_addr,
             secs->size,
             enclave_commit_size,
             ENCLAVE_TYPE_SGX1,
             (const void*)secs,
             sizeof(sgx_secs_t),
+            (const uint32_t)ex_features,
+            (const void**)(context->create_zero_base_enclave ? ex_features_array : NULL),
             &enclave_error);
 
         if (!base)
@@ -402,9 +432,19 @@ oe_result_t oe_sgx_create_enclave(
                 enclave_error);
 
         secs->base = (uint64_t)base;
+
+        if (context->create_zero_base_enclave)
+        {
+            /* Returned base has to be same as requested start_addr */
+            if ((uint64_t)base != (uint64_t)base_addr)
+                OE_RAISE_MSG(
+                    OE_PLATFORM_ERROR,
+                    "enclave_create failed at requested start address");
+            secs->base = (uint64_t)OE_ADDRESS_ZERO;
+        }
     }
-#endif // OEHOSTMR
-    *enclave_addr = base ? (uint64_t)base : secs->base;
+#endif // !defined(OEHOSTMR)
+    *enclave_addr = (uint64_t)base;
     context->state = OE_SGX_LOAD_STATE_ENCLAVE_CREATED;
     result = OE_OK;
 
@@ -556,6 +596,10 @@ oe_result_t oe_sgx_load_enclave_data(
 #endif /* defined(OE_TRACE_MEASURE) */
 
     /* Measure this operation */
+    if (context->create_zero_base_enclave)
+    {
+        base = (uint64_t)OE_ADDRESS_ZERO;
+    }
     OE_CHECK(oe_sgx_measure_load_enclave_data(
         &context->hash_context, base, addr, src, flags, extend));
 

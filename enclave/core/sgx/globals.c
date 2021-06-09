@@ -156,6 +156,18 @@ const void* __oe_get_enclave_elf_header(void)
     return __oe_get_enclave_base();
 }
 
+uint64_t __oe_get_enclave_start_address()
+{
+    return (uint64_t)oe_enclave_properties_sgx.config.start_addr;
+}
+
+uint8_t __oe_get_enclave_create_zero_base_flag()
+{
+    if (oe_enclave_properties_sgx.config.flags.create_zero_base_enclave)
+        return 1;
+    return 0;
+}
+
 /*
 **==============================================================================
 **

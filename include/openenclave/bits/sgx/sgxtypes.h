@@ -1116,6 +1116,16 @@ typedef enum _quote3_error_t {
 } quote3_error_t;
 // clang-format on
 
+/*
+ * Define enclave_elrange_t, used by enclave_create_ex.
+ */
+typedef struct enclave_elrange
+{
+    uint64_t enclave_image_address;
+    uint64_t elrange_start_address;
+    uint64_t elrange_size;
+} enclave_elrange_t;
+
 OE_EXTERNC_END
 
 #endif /* _OE_SGXTYPES_H */
