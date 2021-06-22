@@ -113,6 +113,21 @@ add_custom_command(
     python ${CMAKE_CURRENT_SOURCE_DIR}/make-oesign-config.py --config_file
     family_id_too_short.conf --family_id 57183823-2574-4bfd-b411-99ed177d3e4)
 
+add_custom_command(
+  OUTPUT create_zero_base_enclave.conf
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/make-oesign-config.py
+  COMMAND
+    python ${CMAKE_CURRENT_SOURCE_DIR}/make-oesign-config.py --config_file
+    create_zero_base_enclave.conf --create_zero_base_enclave 1)
+
+add_custom_command(
+  OUTPUT create_zero_base_enclave_w_start_address.conf
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/make-oesign-config.py
+  COMMAND
+    python ${CMAKE_CURRENT_SOURCE_DIR}/make-oesign-config.py --config_file
+    create_zero_base_enclave_w_start_address.conf --create_zero_base_enclave 1
+    --start_address 196608)
+
 # Generate empty config file
 add_custom_command(
   OUTPUT empty.conf COMMAND cmake -E touch
@@ -120,28 +135,31 @@ add_custom_command(
 
 add_custom_target(
   oesign_test_configs ALL
-  DEPENDS duplicate_debug.conf
-          duplicate_num_heap_pages.conf
-          duplicate_num_stack_pages.conf
-          duplicate_num_tcs.conf
-          duplicate_product_id.conf
-          duplicate_security_version.conf
-          lowercase_debug_property.conf
-          debug_out_of_range.conf
-          empty.conf
-          more_num_heap_pages.conf
-          more_num_stack_pages.conf
-          more_num_tcs.conf
-          new_product_id.conf
-          new_security_version.conf
-          negative_num_heap_pages.conf
-          non_debug.conf
-          kss_valid.conf
-          ext_prod_id_too_long.conf
-          ext_prod_id_too_short.conf
-          family_id_too_long.conf
-          family_id_too_short.conf
-          valid.conf)
+  DEPENDS
+    duplicate_debug.conf
+    duplicate_num_heap_pages.conf
+    duplicate_num_stack_pages.conf
+    duplicate_num_tcs.conf
+    duplicate_product_id.conf
+    duplicate_security_version.conf
+    lowercase_debug_property.conf
+    debug_out_of_range.conf
+    empty.conf
+    more_num_heap_pages.conf
+    more_num_stack_pages.conf
+    more_num_tcs.conf
+    new_product_id.conf
+    new_security_version.conf
+    negative_num_heap_pages.conf
+    non_debug.conf
+    kss_valid.conf
+    ext_prod_id_too_long.conf
+    ext_prod_id_too_short.conf
+    family_id_too_long.conf
+    family_id_too_short.conf
+    #         create_zero_base_enclave.conf # disabled until PSW update
+    #         create_zero_base_enclave_w_start_address.conf # disabled until PSW update
+    valid.conf)
 
 # Generate a valid SGX signing key-pair and signing certificate
 add_custom_command(

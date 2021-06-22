@@ -243,7 +243,7 @@ static oe_result_t _add_control_pages(
 
         /* In 0-base enclave, the vaddr starts from the base address 0x0 */
         uint64_t offset =
-            (context->create_zero_base_enclave ? context->start_addr : 0);
+            (context->create_zero_base_enclave ? context->start_address : 0);
 
         /* Set TCS to pointer to page */
         tcs = (sgx_tcs_t*)page;
@@ -371,7 +371,7 @@ static oe_result_t _calculate_enclave_size(
     /* Check if 0-base enclave */
     if (props->config.flags.create_zero_base_enclave)
     {
-        *loaded_enclave_pages_size += props->config.start_addr;
+        *loaded_enclave_pages_size += props->config.start_address;
     }
 
     if (enclave_size)
@@ -621,13 +621,13 @@ oe_result_t oe_sgx_validate_enclave_properties(
 
     if (properties->config.flags.create_zero_base_enclave)
     {
-        if (!oe_sgx_is_valid_start_addr(properties->config.start_addr))
+        if (!oe_sgx_is_valid_start_address(properties->config.start_address))
         {
             if (field_name)
-                *field_name = "config.start_addr";
+                *field_name = "config.start_address";
             OE_TRACE_ERROR(
-                "oe_sgx_is_valid_start_addr failed: start_addr = %lx\n",
-                properties->config.start_addr);
+                "oe_sgx_is_valid_start_address failed: start_address = %lx\n",
+                properties->config.start_address);
             result = OE_FAILURE;
             goto done;
         }
@@ -936,7 +936,7 @@ oe_result_t oe_sgx_build_enclave(
     context->create_zero_base_enclave =
         props.config.flags.create_zero_base_enclave ? 1 : 0;
 
-    context->start_addr = props.config.start_addr;
+    context->start_address = props.config.start_address;
 
     if (props.config.attributes & OE_SGX_FLAGS_KSS)
     {

@@ -327,7 +327,7 @@ oe_result_t oe_sgx_create_enclave(
     uint64_t* enclave_addr)
 {
     oe_result_t result = OE_UNEXPECTED;
-    void *base = NULL, *base_addr = NULL;
+    void *base = NULL, *base_address = NULL;
     sgx_secs_t* secs = NULL;
     enclave_elrange_t enclave_elrange;
     uint32_t ex_features = 0;
@@ -369,23 +369,24 @@ oe_result_t oe_sgx_create_enclave(
 
     /*
      * Load desired enclave start address. NOTE: Currently, this value is NULL
-     * when zero base enclave is not enabled. Also, base_addr has to be a
+     * when zero base enclave is not enabled. Also, base_address has to be a
      * multiple of OE_SGX_PAGE_SIZE.
      */
-    base_addr = (void*)context->start_addr;
-    if ((uint64_t)base_addr & OE_SGX_PAGE_SIZE_MASK)
+    base_address = (void*)context->start_address;
+    if ((uint64_t)base_address & OE_SGX_PAGE_SIZE_MASK)
     {
         OE_RAISE(OE_INVALID_PARAMETER);
     }
 
     if (context->create_zero_base_enclave)
     {
-        enclave_elrange.enclave_image_address = (uint64_t)base_addr;
+        enclave_elrange.enclave_image_address = (uint64_t)base_address;
         enclave_elrange.elrange_start_address = (uint64_t)OE_ADDRESS_ZERO;
         enclave_elrange.elrange_size = enclave_size;
 
         ex_features = ENCLAVE_CREATE_EX_EL_RANGE;
-        ex_features_array[ENCLAVE_CREATE_EX_EL_RANGE_BIT_IDX] = &enclave_elrange;
+        ex_features_array[ENCLAVE_CREATE_EX_EL_RANGE_BIT_IDX] =
+            &enclave_elrange;
     }
 
     /* Create SECS structure */
@@ -411,7 +412,7 @@ oe_result_t oe_sgx_create_enclave(
     {
         uint32_t enclave_error = 0;
         base = oe_sgx_enclave_create_ex(
-            base_addr,
+            base_address,
             secs->size,
             enclave_commit_size,
             ENCLAVE_TYPE_SGX1,
@@ -431,8 +432,8 @@ oe_result_t oe_sgx_create_enclave(
 
         if (context->create_zero_base_enclave)
         {
-            /* Returned base has to be same as requested start_addr */
-            if ((uint64_t)base != (uint64_t)base_addr)
+            /* Returned base has to be same as requested start_address */
+            if ((uint64_t)base != (uint64_t)base_address)
                 OE_RAISE_MSG(
                     OE_PLATFORM_ERROR,
                     "enclave_create failed at requested start address");

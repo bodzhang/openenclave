@@ -74,7 +74,7 @@ struct _oe_sgx_load_context
     bool capture_pf_gp_exceptions_enabled;
 
     bool create_zero_base_enclave;
-    uint64_t start_addr; /* Valid only if create_zero_base_enclave is True */
+    uint64_t start_address; /* Valid only if create_zero_base_enclave is True */
 };
 
 oe_result_t oe_sgx_initialize_load_context(

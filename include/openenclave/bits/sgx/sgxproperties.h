@@ -57,7 +57,7 @@ typedef struct oe_sgx_enclave_config_t
     uint64_t xfrm;
 
     /* Enclave start address. Currently valid only for 0-base enclave */
-    uint64_t start_addr;
+    uint64_t start_address;
 } oe_sgx_enclave_config_t;
 
 /* Extends oe_enclave_properties_header_t base type */
@@ -191,7 +191,7 @@ typedef struct _oe_sgx_enclave_properties
             .family_id = FAMILY_ID,                                       \
             .extended_product_id = EXTENDED_PRODUCT_ID,                   \
             .attributes = OE_MAKE_ATTRIBUTES(ALLOW_DEBUG, REQUIRE_KSS),   \
-            .start_addr = SGX_ENCLAVE_START_ADDR,                         \
+            .start_address = SGX_ENCLAVE_START_ADDR,                         \
         },                                                                \
         .image_info =                                                     \
         {                                                                 \

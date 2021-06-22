@@ -51,7 +51,7 @@ typedef struct _config_file_options
     optional_oe_uuid_t extended_product_id;
     optional_bool_t capture_pf_gp_exceptions;
     optional_bool_t create_zero_base_enclave;
-    optional_uint64_t start_addr;
+    optional_uint64_t start_address;
 } config_file_options_t;
 
 int uuid_from_string(str_t* str, uint8_t* uuid, size_t expected_size);
@@ -370,7 +370,7 @@ static int _load_config_file(const char* path, config_file_options_t* options)
         {
             uint64_t n;
 
-            if (options->start_addr.has_value)
+            if (options->start_address.has_value)
             {
                 oe_err(
                     "%s(%zu): Duplicate 'StartAddress' value provided",
@@ -380,7 +380,7 @@ static int _load_config_file(const char* path, config_file_options_t* options)
             }
 
             if (str_ptr(&rhs)[0] == '-' || str_u64(&rhs, &n) != 0 ||
-                !oe_sgx_is_valid_start_addr(n))
+                !oe_sgx_is_valid_start_address(n))
             {
                 oe_err(
                     "%s(%zu): bad value for 'StartAddress': %s",
@@ -390,8 +390,8 @@ static int _load_config_file(const char* path, config_file_options_t* options)
                 goto done;
             }
 
-            options->start_addr.value = n;
-            options->start_addr.has_value = true;
+            options->start_address.value = n;
+            options->start_address.has_value = true;
         }
         else
         {
@@ -574,8 +574,8 @@ void _merge_config_file_options(
 
     /* If create_zero_base_enclave is enabled and StartAddress is provided */
     if (options->create_zero_base_enclave.value == 1 &&
-        options->start_addr.has_value)
-        properties->config.start_addr = options->start_addr.value;
+        options->start_address.has_value)
+        properties->config.start_address = options->start_address.value;
 }
 
 oe_result_t _initialize_enclave_properties(
