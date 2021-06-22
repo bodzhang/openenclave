@@ -7,6 +7,9 @@
 #include <openenclave/bits/result.h>
 #include <openenclave/bits/types.h>
 
+/* disables enclave_create_ex() from loading enclave_create_ex()*/
+#define OE_SKIP_CREATE_EX /* disabled until PSW update. */
+
 #ifndef ENCLAVE_TYPE_SGX
 #define ENCLAVE_TYPE_SGX                                                   \
     0x00000001 /* An enclave for the Intel Software Guard Extensions (SGX) \

@@ -124,8 +124,10 @@ static void _load_sgx_enclave_common_impl(void)
     if (_module)
     {
         OE_CHECK(_lookup_function("enclave_create", (void**)&_enclave_create));
+#ifndef OE_SKIP_CREATE_EX /* disabled until PSW update. */
         OE_CHECK(
             _lookup_function("enclave_create_ex", (void**)&_enclave_create_ex));
+#endif
         OE_CHECK(
             _lookup_function("enclave_load_data", (void**)&_enclave_load_data));
         OE_CHECK(_lookup_function(
