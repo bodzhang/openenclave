@@ -7,7 +7,7 @@
 #include <openenclave/bits/result.h>
 #include <openenclave/bits/types.h>
 
-/* disables enclave_create_ex() from loading enclave_create_ex()*/
+/* disables loading enclave_create_ex() from sgx_enclave_common.so */
 #define OE_SKIP_CREATE_EX /* disabled until PSW update. */
 
 #ifndef ENCLAVE_TYPE_SGX

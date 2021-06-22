@@ -934,7 +934,7 @@ oe_result_t oe_sgx_build_enclave(
 
     /* Check if the enclave is configured with create_zero_base_enclave = 1 */
     context->create_zero_base_enclave =
-        props.config.flags.create_zero_base_enclave ? 1 : 0;
+        props.config.flags.create_zero_base_enclave;
 
     context->start_address = props.config.start_address;
 
