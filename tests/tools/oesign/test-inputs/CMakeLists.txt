@@ -157,8 +157,8 @@ add_custom_target(
     ext_prod_id_too_short.conf
     family_id_too_long.conf
     family_id_too_short.conf
-    #         create_zero_base_enclave.conf # disabled until PSW update
-    #         create_zero_base_enclave_w_start_address.conf # disabled until PSW update
+    #   create_zero_base_enclave.conf # disabled until PSW update
+    #   create_zero_base_enclave_w_start_address.conf # disabled until PSW update
     valid.conf)
 
 # Generate a valid SGX signing key-pair and signing certificate
