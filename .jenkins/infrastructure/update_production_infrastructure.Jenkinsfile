@@ -10,24 +10,21 @@ OETOOLS_REPO_NAME = "oejenkinscidockerregistry.azurecr.io"
 OETOOLS_REPO_CREDENTIAL_ID = "oejenkinscidockerregistry"
 OETOOLS_DOCKERHUB_REPO_CREDENTIAL_ID = "oeciteamdockerhub"
 
-DOCKER_IMAGES_NAMES = ["oetools-full-18.04", "oetools-full-20.04", "oetools-minimal-18.04", "oetools-deploy"]
+DOCKER_IMAGES_NAMES = ["oetools-18.04", "oetools-20.04"]
 AZURE_IMAGES_MAP = [
     // Mapping between shared gallery image definition name and
     // generated Azure managed image name
     "ubuntu-18.04":    "${env.IMAGE_ID}-ubuntu-18.04-SGX",
     "ubuntu-20.04":    "${env.IMAGE_ID}-ubuntu-20.04-SGX",
-    "rhel-8":          "${env.IMAGE_ID}-rhel-8-SGX",
-    "ws2016-nonSGX":   "${env.IMAGE_ID}-ws2016-nonSGX",
-    "ws2016-SGX":      "${env.IMAGE_ID}-ws2016-SGX",
-    "ws2016-SGX-DCAP": "${env.IMAGE_ID}-ws2016-SGX-DCAP",
+    "ws2019-nonSGX":   "${env.IMAGE_ID}-ws2019-nonSGX",
     "ws2019-SGX":      "${env.IMAGE_ID}-ws2019-SGX",
     "ws2019-SGX-DCAP": "${env.IMAGE_ID}-ws2019-SGX-DCAP"
 ]
-IMAGES_BUILD_LABEL = env.IMAGES_BUILD_LABEL ?: "nonSGX"
+IMAGES_BUILD_LABEL = env.IMAGES_BUILD_LABEL ?: "nonSGX-ubuntu-2004"
 
 
 def update_production_docker_images() {
-    node("nonSGX") {
+    node("nonSGX-ubuntu-2004") {
         timeout(GLOBAL_TIMEOUT_MINUTES) {
             stage("Backup current production Docker images") {
                 docker.withRegistry("https://${OETOOLS_REPO_NAME}", OETOOLS_REPO_CREDENTIAL_ID) {
@@ -87,7 +84,7 @@ def update_production_azure_gallery_images(String image_name) {
                         --target-regions ${env.REPLICATION_REGIONS.split(',').join(' ')} \
                         --replica-count 1
                 """
-                oe.azureEnvironment(az_update_image_script, "oetools-deploy:${env.DOCKER_TAG}")
+                oe.azureEnvironment(az_update_image_script, "oetools-20.04:${env.DOCKER_TAG}")
             }
         }
     }

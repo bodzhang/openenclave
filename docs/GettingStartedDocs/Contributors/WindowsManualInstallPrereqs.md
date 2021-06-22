@@ -6,7 +6,7 @@
  Note: To check if your system has support for SGX1 with or without FLC, please look [here](../SGXSupportLevel.md).
  
 - A version of Windows OS with native support for SGX features:
-   - For server: Windows Server 2016 or 2019
+   - For server: Windows Server 2019
    - For client: Windows 10 64-bit version 1709 or newer
    - To check your Windows version, run `winver` on the command line.
 
@@ -16,7 +16,7 @@
 - [Clang/LLVM for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-8.0.1/LLVM-8.0.1-win64.exe)
 - [Python 3](https://www.python.org/downloads/windows/)
 - [ShellCheck](https://oejenkins.blob.core.windows.net/oejenkins/shellcheck-v0.7.0.zip)
-- [OpenSSL 1.1.1](https://slproweb.com/products/Win32OpenSSL.html)
+- [OpenSSL 1.1.1](https://oejenkins.blob.core.windows.net/oejenkins/openssl.1.1.1506.73.nupkg)
 - [cmake format](https://github.com/cheshirekow/cmake_format)
 
 ## Prerequisites specific to SGX support on your system
@@ -77,7 +77,16 @@ Inside it there is a shellcheck-v0.7.0.exe which must be copied to a directory i
 
 ## OpenSSL
 
-Download and install the latest [Win64 OpenSSL 1.1.1](https://slproweb.com/products/Win32OpenSSL.html). Do not choose the light version; for example, use Win64OpenSSL-1_1_1g.exe, not Win64OpenSSL_Light-1_1_1g.exe.
+Download and install the latest build of OpenSSL for Windows from one of the following [locations](https://wiki.openssl.org/index.php/Binaries) or build and install it from source.
+
+Alternatively, you can use the latest version of OpenSSL that the OpenEnclave CI team [publishes](https://oejenkins.blob.core.windows.net/oejenkins/openssl.1.1.1506.73.nupkg) which is distributed under the [dual OpenSSL and SSLeay license](https://www.openssl.org/source/license-openssl-ssleay.txt) without further legal obligations.
+
+After installing OpenSSL, add `openssl` to your `PATH`.
+
+```cmd
+C:\Users\test> where openssl
+C:\oe_prereqs\OpenSSL\x64\release\bin\openssl.exe
+```
 
 ## cmake format
 

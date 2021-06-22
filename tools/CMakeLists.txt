@@ -23,8 +23,8 @@ else ()
   # cross-compilers, and ought not be used. Determine host compilers to use.
   # Prefer clang, but fallback to GCC since, unlike SGX, we cannot be sure that
   # clang exists in the build environment for OPTEE.
-  find_program(EDGER8R_C_COMPILER clang-8 clang gcc)
-  find_program(EDGER8R_CXX_COMPILER clang++-8 clang++ g++)
+  find_program(EDGER8R_C_COMPILER clang-10 clang gcc)
+  find_program(EDGER8R_CXX_COMPILER clang++-10 clang++ g++)
 endif ()
 
 ExternalProject_Add(
@@ -65,4 +65,7 @@ if (OE_SGX)
   add_subdirectory(oesgx)
   add_subdirectory(oesign)
   add_subdirectory(oeverify)
+  if (BUILD_OEUTIL_TOOL)
+    add_subdirectory(oeutil)
+  endif ()
 endif ()

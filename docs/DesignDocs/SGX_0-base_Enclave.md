@@ -46,7 +46,7 @@ the OS maps host-side code/data page in the linear address range corresponding
 to the Enclave Guard Pages, within the Enclave Linear address range, the
 host-side code would be able to access those pages.
 
-![typical layout](typical.PNG "Typical Enclave Memory Layout")
+![typical layout](typical.png "Typical Enclave Memory Layout")
 
 The 0-page is typically not accessible. A collaborative OS will not map anything
 at the low end of the linear address range around 0. So access to the 0-page, by
@@ -84,7 +84,7 @@ application, for example, the ECALL/OCALL data marshalling buffers or host-side
 code provided shared memory, those shared memory must reside above `SECS.SIZE`,
 not in the address range lower than `ENCLAVE_START`.
 
-![0-base layout](0-base.PNG "0-base Enclave Memory Layout")
+![0-base layout](0-base.png "0-base Enclave Memory Layout")
 
 In a typical SGX application, `ENCLAVE_START` is selected by the OS memory
 manager, and `SECS.BASEADDR` is set to match `ENCLAVE_START`. In SGX, the
@@ -105,6 +105,15 @@ reserve the linear address range between `SECS.BASEADDR`=0 and `SECS.SIZE` for
 the Enclave. It should reserve the memory range starting from `ENCLAVE_START`,
 in this case, predefined at Enclave signing time, with a size smaller than
 `SECS.SIZE`.
+
+To mitigate the possible attack where the untrusted Loader sets `SECS.BASEADDR`
+to a non-zero value and shifts `ENCLAVE_START` accordingly to preserve the
+Enclave measurement, the code inside the 0-base Enclave should check
+`ENCLAVE_START` against the predetermined value selected at Enclave signing
+time. The check should be done as early as possible during initialization of the
+trusted runtime inside the Enclave, to minimize the chance that an attacker
+leverages an NULL pointer dereference code or bug inside the Enclave to
+circumvent the detection itself.
 
 It's possible to support multiple 0-base Enclaves in a single process. The SGX
 CPU does not require each Enclave, even in a single process, to have an unique
@@ -135,7 +144,7 @@ be possible, as each instance would has to be loaded at exactly the same
 [`ENCLAVE_START`, `ENCLAVE_END`] range to maintain the Enclave measurement,
 which is not possible within a single process.
 
-## Support SGX Enclave with SECS.BASEADDR set to 0
+## Support OE SGX Enclave with SECS.BASEADDR set to 0
 
 To support "0-base" SGX Enclave with `SECS.BASEADDR`=0, an flag indicating
 "0-base", and a variable for the predetermined `ENCLAVE_START` value are added
@@ -148,7 +157,10 @@ typedef struct oe_sgx_enclave_config_t
     uint16_t security_version;
 
     /* Flag to indicate 0-base enclave, keeping alignment */
-    uint32_t flag_0_base;
+    struct{
+        uint32_t zero_base : 1;
+        uint32_t reserved: 31;
+    }flags;
 
     uint8_t family_id[16];
     uint8_t extended_product_id[16];
@@ -158,7 +170,7 @@ typedef struct oe_sgx_enclave_config_t
     /* XSave Feature Request Mask */
     uint64_t xfrm;
 
-    /* 0-base enclave start addr */
+    /* Enclave start addr, currently valid only for 0-base enclave */
     uint64_t start_addr;
 } oe_sgx_enclave_config_t;
 
@@ -195,7 +207,7 @@ struct _oe_sgx_load_context
     bool use_config_id;
     /* If true, the enclave to be loaded is a 0-base enclave */
     bool zero_base_enclave;
-    /* 0-base enclave start addr, valid only if zero_base_enclave is true  */
+    /* Enclave start addr, currently valid only if zero_base_enclave is true  */
     uint64_t start_addr;
 };
 ```
@@ -206,7 +218,7 @@ in the `oe_sgx_load_context` input, the function will invoke
 of the untrusted SGX Enclave Loader,  to create a regular SGX Enclave or a SGX
 Enclave with a fixed base of 0.
 
-When creating an SGX Enclave with a fixed base,  `libsgx_enclave_common.so`
+When creating an SGX Enclave with a fixed base, `libsgx_enclave_common.so`
 attempts to reserve the virtual memory at the requested `start_addr` and set
 `SECS.BASEADDR` as the requested value of 0. If the operations are successful,
 the returned enclave start address should match the requested `start_addr`.
@@ -222,6 +234,93 @@ several fields are defined as offset value from `SECS.BASEADDR`. OE SDK's
 `_add_control_pages(...)` function needs to take into account that 0-base
 enclave's `SECS.BASEADDR` is 0, not `start_addr`, when filling in the SGX `TCS`
 page.
+
+The `oe_sgx_enclave_config_t` structure is part of the measured OE SGX Enclave
+image. The OE SGX enclave trusted runtime initialization code should check the
+detected `start_addr` against the the 0-base enclave's expected `start_addr` in
+`oe_sgx_enclave_config_t` structure, for example, in the
+`_check_memory_boundaries()` function.
+
+The oesign tool needs to be extended to support two extra configuration
+parameters,`Zero_Base` and `Start_Addr`, matching the corresponding fields in
+`oe_sgx_enclave_config_t`.
+
+OE SDK implementation should provide samples and instructions to help the
+developer of 0-base enclave to select the proper value of `ENCLAVE_START`, and
+to allocate ECALL/OCALL marshalling data structure and shared memory above
+`SECS.SIZE`. One simple solution to make sure the marshalling data structure and
+shared memory are above `SECS.SIZE` is to use linker option to specify a high
+address to load the host side app.
+
+A POC for 0-base enclave support on Linux was implemented and confirmed the
+design. No POC was done on Windows. Based on the analysis of the Windows kernel
+APIs for SGX Enclave, we believe that the existing kernel APIs won't support
+setting `SECS.BASEADDR` as 0. The 0-base enclave support feature in OE has to be
+limited to Linux, until the Windows kernel API implementation can be changed.
+
+## Implication for future SGX2.0 EDMM support
+
+With SGX2.0 EDMM feature support, OE SGX Enclave would be able to request the
+untrusted OS to add or remove Enclave pages within the Enclave Linear Address
+range, after the Enclave is initialized. The trusted runtime inside the Enclave
+must invoke `EACCEPT`instruction to approve any change to the Enclave memory
+layout. To be compatible with the 0-base Enclave design, the trusted runtime
+implementation for EDMM feature support should reject OS attempt to add EPC
+pages between `SECS.BASEADDR`=0 and `ENCLAVE_START`.
+
+## Alternatives
+
+With the SGX threat model, OS cannot be trusted to enforce NULL pointer
+dereference exception. Instead of the proposed design above that enables the
+trusted runtime inside the SGX Enclave and the trusted Enclave build
+process/environment to enforce the policy, an alternative approach is to change
+the programing language runtime to remove the dependency on NULL pointer
+dereference exception. Considering the significant technical and acceptance
+challenge associated with making low level changes in the programing language
+runtime, the alternative approach will not be pursued.
+
+## Future Work Consideration
+
+Though outside the scope of this design doc, 0-base SGX Enclave can be leverage
+to support "two-way sandboxing" of an SGX Enclave. The SGX Technology's primary
+objective is to protect the enclave code/data from the untrusted host code or
+OS. Typically, the enclave code can access the code/data page of the host app.
+This capability allows efficient data sharing between the enclave code and the
+host code, but also enables potentially malicious or compromised enclave code to
+attack the host code and eventually the OS through the compromised host code.
+For example, a SGX Enclave loading a container app into the Enclave memory to
+execute protects the container app against potential attacks from the host app
+or OS, but if the loaded container app is malicious or is compromised during run
+time by remote attacks, attacks on the host app or OS originated from the
+Enclave is possible. "Two-way sandboxing", where the Enclave code/data is
+protected from the host code or OS, and the host app and OS are also protected
+from the Enclave code, is a valuable security property.
+
+With the 0-based SGX Enclave design, the OS and host code and effectively limit
+enclave code access to non-Enclave memory. A memory layout example is shown
+below.
+
+![sandbox layout](sandbox.png "Two-way Sandbox Memory Layout")
+
+In this memory layout example, the only non-Enclave memory accessible by the
+enclave code is the marshalling buffer, allocated right above `SECS.SIZE`. The
+linear address range beyond the marshalling buffer is not accessible by either
+the enclave code or the host code, as the OS did not create any page table entry
+for that range. The host code/data page between `ENCLAVE_END` and `SECS.SIZE` is
+not accessible by the enclave code due to guard page behavior. The `SECS.SIZE`
+can be set to a large value (must be power of 2), so host side code/data page
+range is big enough to meet the host app needs. With this arrangement, the host
+side code/data is protected against potentially malicious or compromised enclave
+code.
+
+The memory layout example might also offer limited protection against potential
+Enclave code bugs that can expose Enclave secret through unintentional write
+to the non-Enclave memory. The bug would have to cause the write to memory above
+the large `SECS.SIZE` value to leak the Enclave secret. The restriction might
+render some bugs non-exploitable.
+
+"Two-way sandboxing" SGX Enclave support requires more exploration on the design
+details, to be addressed in future work.
 
 ## Authors
 

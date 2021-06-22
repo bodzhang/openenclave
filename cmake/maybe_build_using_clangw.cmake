@@ -48,8 +48,7 @@ function (maybe_build_using_clangw OE_TARGET)
       -fno-builtin-malloc
       -fno-builtin-calloc
       -fno-builtin
-      -mllvm
-      -x86-speculative-load-hardening)
+      -mspeculative-load-hardening)
   else ()
     target_compile_options(
       ${OE_TARGET}
@@ -64,11 +63,10 @@ function (maybe_build_using_clangw OE_TARGET)
               -fno-builtin-malloc
               -fno-builtin-calloc
               -fno-builtin
-              -mllvm
-              -x86-speculative-load-hardening)
+              -mspeculative-load-hardening)
   endif ()
 
-  # Setup library names variables
+  # Setup static library names variables
   set(CMAKE_STATIC_LIBRARY_PREFIX
       "lib"
       PARENT_SCOPE)
@@ -76,12 +74,28 @@ function (maybe_build_using_clangw OE_TARGET)
       ".a"
       PARENT_SCOPE)
 
-  # Setup library tool variables
+  # Setup static library tool variables
   set(CMAKE_C_CREATE_STATIC_LIBRARY
       "\"${OE_BASH}\" \"${OE_SCRIPTSDIR}/llvm-arw\" \"qc <TARGET> <OBJECTS>\""
       PARENT_SCOPE)
   set(CMAKE_CXX_CREATE_STATIC_LIBRARY
       "\"${OE_BASH}\" \"${OE_SCRIPTSDIR}/llvm-arw\" \"qc <TARGET> <OBJECTS>\""
+      PARENT_SCOPE)
+
+  # Setup shared library names variable
+  set(CMAKE_SHARED_LIBRARY_PREFIX
+      "lib"
+      PARENT_SCOPE)
+  set(CMAKE_SHARED_LIBRARY_SUFFIX
+      ".so"
+      PARENT_SCOPE)
+
+  # Setup shared library tool variables
+  set(CMAKE_C_CREATE_SHARED_LIBRARY
+      "\"${OE_BASH}\" \"${OE_SCRIPTSDIR}/clangw\" \"link -shared <OBJECTS> -o <TARGET>  <LINK_LIBRARIES>\""
+      PARENT_SCOPE)
+  set(CMAKE_CXX_CREATE_SHARED_LIBRARY
+      "\"${OE_BASH}\" \"${OE_SCRIPTSDIR}/clangw\" \"link -shared <OBJECTS> -o <TARGET>  <LINK_LIBRARIES>\""
       PARENT_SCOPE)
 
   # Setup linker variables.

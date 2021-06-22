@@ -3,31 +3,31 @@
 
 # The Hash parameter defaults below are calculated using Get-FileHash with the default SHA256 hashing algorithm
 Param(
-    [string]$GitURL = 'https://github.com/git-for-windows/git/releases/download/v2.19.1.windows.1/Git-2.19.1-64-bit.exe',
-    [string]$GitHash = '5E11205840937DD4DFA4A2A7943D08DA7443FAA41D92CCC5DAFBB4F82E724793',
-    [string]$OpenSSLURL = 'https://slproweb.com/download/Win64OpenSSL-1_1_1j.exe',
-    [string]$OpenSSLHash = 'EAF2BD1FCD9B362B632A4E3F0FB22F35C904BD0C0862C8FD35EA4534E0587D2C',
+    [string]$GitURL = 'https://github.com/git-for-windows/git/releases/download/v2.31.1.windows.1/Git-2.31.1-64-bit.exe',
+    [string]$GitHash = 'C43611EB73AD1F17F5C8CC82AE51C3041A2E7279E0197CCF5F739E9129CE426E',
+    [string]$OpenSSLURL = 'https://oejenkins.blob.core.windows.net/oejenkins/openssl.1.1.1506.73.nupkg',
+    [string]$OpenSSLHash = '1744DF0BCCC11C5C31846E450D8DF02D5F376073EB4AC77BA1F7B2DD82093A26',
     [string]$SevenZipURL = 'https://www.7-zip.org/a/7z1806-x64.msi',
     [string]$SevenZipHash = 'F00E1588ED54DDF633D8652EB89D0A8F95BD80CCCFC3EED362D81927BEC05AA5',
     # We skip the hash check for the vs_buildtools.exe file because it is regularly updated without a change to the URL, unfortunately.
     [string]$VSBuildToolsURL = 'https://aka.ms/vs/15/release/vs_buildtools.exe',
     [string]$VSBuildToolsHash = '',
-    [string]$ClangURL = 'https://github.com/llvm/llvm-project/releases/download/llvmorg-8.0.1/LLVM-8.0.1-win64.exe',
-    [string]$ClangHash = 'E3AF139C2F93075C13DCBC4091C1311F66FC6E4E8705649FCAF9BEF8B3368F41',
-    [string]$IntelPSWURL = 'https://registrationcenter-download.intel.com/akdlm/irc_nas/17553/Intel%20SGX%20PSW%20for%20Windows%20v2.12.100.4.exe',
-    [string]$IntelPSWHash = 'B3F70CCEAD59CAFF7114B9CBF25863E8B930447CC989878352E7C6442EC3C981',
+    [string]$ClangURL = 'https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/LLVM-10.0.0-win64.exe',
+    [string]$ClangHash = '893f8a12506f8ad29ca464d868fb432fdadd782786a10655b86575fc7fc1a562',
+    [string]$IntelPSWURL = 'https://registrationcenter-download.intel.com/akdlm/irc_nas/17829/Intel%20SGX%20PSW%20for%20Windows%20v2.12.103.1.exe',
+    [string]$IntelPSWHash = 'FD3ED08C70DB35B122F2FDD8E6046E3A97B078F4735705CDC074767F040A5609',
     [string]$ShellCheckURL = 'https://oejenkins.blob.core.windows.net/oejenkins/shellcheck-v0.7.0.zip',
     [string]$ShellCheckHash = '02CFA14220C8154BB7C97909E80E74D3A7FE2CBB7D80AC32ADCAC7988A95E387',
     [string]$NugetURL = 'https://www.nuget.org/api/v2/package/NuGet.exe/3.4.3',
     [string]$NugetHash = '2D4D38666E5C7D27EE487C60C9637BD9DD63795A117F0E0EDC68C55EE6DFB71F',
     [string]$DevconURL = 'https://download.microsoft.com/download/7/D/D/7DD48DE6-8BDA-47C0-854A-539A800FAA90/wdk/Installers/787bee96dbd26371076b37b13c405890.cab',
     [string]$DevconHash = 'A38E409617FC89D0BA1224C31E42AF4344013FEA046D2248E4B9E03F67D5908A',
-    [string]$IntelDCAPURL = 'https://registrationcenter-download.intel.com/akdlm/irc_nas/17550/Intel%20SGX%20DCAP%20for%20Windows%20v1.10.100.4.exe',
-    [string]$IntelDCAPHash = '1F2C2D42AEBAD87D3D622B7B33BB6125D5F06F9613F011ACD9A339BAEC66C0D8',
+    [string]$IntelDCAPURL = 'https://registrationcenter-download.intel.com/akdlm/irc_nas/17828/Intel%20SGX%20DCAP%20for%20Windows%20v1.10.103.1.exe',
+    [string]$IntelDCAPHash = '2AB16BB499DE29D9EE7A5F74A79902EF69169D37704167611748F9E281B9E46A',
     [string]$VCRuntime2012URL = 'https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x64.exe',
     [string]$VCRuntime2012Hash = '681BE3E5BA9FD3DA02C09D7E565ADFA078640ED66A0D58583EFAD2C1E3CC4064',
-    [string]$AzureDCAPNupkgURL = 'https://www.nuget.org/api/v2/package/Microsoft.Azure.DCAP/1.6.0',
-    [string]$AzureDCAPNupkgHash = 'CC6D4071CE03B9E6922C3265D99FB1C0E56FCDB3409CBCEDB5A76F4886A3964A',
+    [string]$AzureDCAPNupkgURL = 'https://www.nuget.org/api/v2/package/Microsoft.Azure.DCAP/1.10.0',
+    [string]$AzureDCAPNupkgHash = '4B416DA557C1102CBC9FFD5D39B6B344762F8DFD17BA2BB0D0EDC0ACABE2C06B',
     [string]$Python3ZipURL = 'https://www.python.org/ftp/python/3.7.4/python-3.7.4-embed-amd64.zip',
     [string]$Python3ZipHash = 'FB65E5CD595AD01049F73B47BC0EE23FD03F0CBADC56CB318990CEE83B37761B',
     [string]$NSISURL = 'https://oejenkins.blob.core.windows.net/oejenkins/nsis-3.05-setup.exe',
@@ -36,7 +36,8 @@ Param(
     [string]$GetPipHash = 'DBD5DAE3D1E7F6DF844D630CDF65E0F0D98E483C9997DAEA17C7C9D86F7B38AD',
     [Parameter(mandatory=$true)][string]$InstallPath,
     [Parameter(mandatory=$true)][ValidateSet("SGX1FLC", "SGX1", "SGX1FLC-NoIntelDrivers", "SGX1-NoIntelDrivers")][string]$LaunchConfiguration,
-    [Parameter(mandatory=$true)][ValidateSet("None", "Azure")][string]$DCAPClientType
+    [Parameter(mandatory=$true)][ValidateSet("None", "Azure")][string]$DCAPClientType,
+    [Parameter(mandatory=$false)][switch]$InstallDocker=$false
 )
 
 $ErrorActionPreference = "Stop"
@@ -103,7 +104,7 @@ $PACKAGES = @{
     "openssl" = @{
         "url" = $OpenSSLURL
         "hash" = $OpenSSLHash
-        "local_file" = Join-Path $PACKAGES_DIRECTORY "Win64OpenSSL-1_1_1g.exe"
+        "local_file" = Join-Path $PACKAGES_DIRECTORY "openssl.nupkg"
     }
     "python3" = @{
         "url" = $Python3ZipURL
@@ -172,26 +173,6 @@ function Start-LocalPackagesDownload {
         }
     }
     Write-Output "Finished downloading all the packages"
-}
-
-function Get-WindowsRelease {
-    $releases = @{
-        18363 = "Win10"
-        18362 = "Win10"
-        17763 = "WinServer2019"
-        14393 = "WinServer2016"
-    }
-    $osBuild = [System.Environment]::OSVersion.Version.Build
-    $osInfo = Get-CimInstance -ClassName Win32_OperatingSystem
-    $releaseName = $releases[$osBuild]
-    # ProductType: 1 - Work Station, 3 - Server
-    if (($osBuild -eq 17763) -and ($osInfo.ProductType -eq 1)) {
-        $releaseName = "Win10"
-    }
-    if (!$releaseName) {
-        Throw "Cannot find the Windows release name"
-    }
-    return $releaseName
 }
 
 function Start-ExecuteWithRetry {
@@ -385,11 +366,9 @@ function Install-Git {
 }
 
 function Install-OpenSSL {
-    $installDir = Join-Path $env:ProgramFiles "OpenSSL-Win64"
-    Install-Tool -InstallerPath $PACKAGES["openssl"]["local_file"] `
-                 -InstallDirectory $installDir `
-                 -ArgumentList @("/silent", "/eula=accept") `
-                 -EnvironmentPath @("$installDir\bin")
+    $installDir = Join-Path $InstallPath "OpenSSL"
+    nuget.exe install openssl -Source $PACKAGES_DIRECTORY -OutputDirectory $InstallPath -ExcludeVersion
+    Add-ToSystemPath -Path @("$installDir\bin")
 }
 
 function Install-7Zip {
@@ -402,35 +381,20 @@ function Install-7Zip {
 
 function Install-PSW {
 
-    $OS_VERSION = Get-WindowsRelease
     $tempInstallDir = "$PACKAGES_DIRECTORY\Intel_SGX_PSW"
     if(Test-Path $tempInstallDir) {
         Remove-Item -Recurse -Force $tempInstallDir
     }
     Install-ZipTool -ZipPath $PACKAGES["psw"]["local_file"] `
                     -InstallDirectory $tempInstallDir
-    if ($OS_VERSION -eq "WinServer2016") {
-        $installer = Get-Item "$tempInstallDir\Intel*SGX*\PSW_EXE*\Intel(R)_SGX_Windows_x64_PSW_*.exe"
-        if(!$installer) {
-            Throw "Cannot find the installer executable"
-        }
-        if($installer.Count -gt 1) {
-            Throw "Multiple installer executables found"
-        }
-        $unattendedParams = @('--s', '--a', 'install', "--output=$tempInstallDir\psw-installer.log", '--eula=accept', '--no-progress')
-        $p = Start-Process -Wait -NoNewWindow -FilePath $installer -ArgumentList $unattendedParams -PassThru
-        if($p.ExitCode -ne 0) {
-            Get-Content "$tempInstallDir\psw-installer.log"
-            Throw "Failed to install Intel PSW"
-        }
-    } else {
-        # For Windows Server 2019 and Windows 10, Intel SGX PSW package 2.12+ will install both PSW and DCAP
-        $psw_dir = Get-Item "$tempInstallDir\Intel*SGX*\PSW_INF*\"
-        Start-ExecuteWithRetry -RetryInterval 5 -ScriptBlock {
-            pnputil /add-driver $psw_dir\sgx_psw.inf /install
-            Get-Service "AESMService"
-        }
+    
+    # For Windows Server 2019 and Windows 10, Intel SGX PSW package 2.12+ will install both PSW and DCAP
+    $psw_dir = Get-Item "$tempInstallDir\Intel*SGX*\PSW_INF*\"
+    Start-ExecuteWithRetry -RetryInterval 5 -ScriptBlock {
+        pnputil /add-driver $psw_dir\sgx_psw.inf /install
+        Get-Service "AESMService"
     }
+
     Start-ExecuteWithRetry -ScriptBlock {
         Start-Service -Name "AESMService" -ErrorAction Stop
     } -RetryMessage "Failed to start AESMService. Retrying"
@@ -533,40 +497,18 @@ function Install-DCAP-Dependencies {
     Install-Tool -InstallerPath $PACKAGES["dcap"]["local_file"] `
                  -ArgumentList @('/auto', "$PACKAGES_DIRECTORY\Intel_SGX_DCAP")
 
-    $OS_VERSION = Get-WindowsRelease
     if (($LaunchConfiguration -eq "SGX1FLC") -or ($DCAPClientType -eq "Azure"))
     {
         $drivers = @{
-            'WinServer2016' = @{
-                'sgx_base_dev' = @{
-                    'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_PSW\Intel*SGX*PSW*\base\WindowsServer2016"
-                    'location'    = 'root\SgxLCDevice'
-                    'description' = 'Intel(R) Software Guard Extensions Launch Configuration Service'
-                }
-                'sgx_dcap_dev' = @{
-                    'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\Intel*SGX*DCAP*\dcap\WindowsServer2016"
-                    'location'    = 'root\SgxLCDevice_DCAP'
-                    'description' = 'Intel(R) Software Guard Extensions DCAP Components Device'
-                }
-            }
-            'WinServer2019' = @{
-                'sgx_base' = @{
-                    'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_PSW\Intel*SGX*PSW*\base\WindowsServer2019_Windows10"
-                    'location'    = 'root\SgxLCDevice'
-                    'description' = 'Intel(R) Software Guard Extensions Launch Configuration Service'
-                }
-            }
-            'Win10' = @{
-                'sgx_base' = @{
-                    'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_PSW\Intel*SGX*PSW*\base\WindowsServer2019_Windows10"
-                    'location'    = 'root\SgxLCDevice'
-                    'description' = 'Intel(R) Software Guard Extensions Launch Configuration Service'
-                }
+            'sgx_base' = @{
+                'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_PSW\Intel*SGX*PSW*\base\WindowsServer2019_Windows10"
+                'location'    = 'root\SgxLCDevice'
+                'description' = 'Intel(R) Software Guard Extensions Launch Configuration Service'
             }
         }
         $devConBinaryPath = Get-DevconBinary
-        foreach($driver in $drivers[${OS_VERSION}].Keys) {
-            $path = $drivers[${OS_VERSION}][$driver]['path']
+        foreach($driver in $drivers.Keys) {
+            $path = $drivers[$driver]['path']
             $inf = Get-Item "$path\$driver.inf"
             if(!$inf) {
                 Throw "Cannot find $driver.inf file"
@@ -577,33 +519,13 @@ function Install-DCAP-Dependencies {
             }
             if($LaunchConfiguration -eq "SGX1FLC")
             {
-                # Check if the driver is already installed and delete it
-                $output = & $devConBinaryPath find "$($drivers[${OS_VERSION}][$driver]['location'])"
-                if($LASTEXITCODE) {
-                    Throw "Failed searching for $driver driver"
-                }
-                $output | ForEach-Object {
-                    if($_.Contains($drivers[${OS_VERSION}][$driver]['description'])) {
-                        Write-Output "Removing driver $($drivers[${OS_VERSION}][$driver]['location'])"
-                        Remove-DCAPDriver -Name $drivers[${OS_VERSION}][$driver]['location']
-                    }
-                }
-                Write-Output "Installing driver $($drivers[${OS_VERSION}][$driver]['location'])"
-                if($OS_VERSION -eq "WinServer2016")
-                {
-                    $install = & $devConBinaryPath install "$($inf.FullName)" $drivers[${OS_VERSION}][$driver]['location']
-                    if($LASTEXITCODE) {
-                        Throw "Failed to install $driver driver"
-                    }
-                } else{
-                    $install = & pnputil /add-driver "$($inf.FullName)" /install
-                }
+                $install = & pnputil /add-driver "$($inf.FullName)" /install
                 Write-Output $install
             }
         }
     }
 
-    # Starting from Intel SGX 2.12, the Intel SGX PSW package contains DCAP and PSW for Windows Server 2016/2019, and Windows 10.
+    # Starting from Intel SGX 2.12, the Intel SGX PSW package contains DCAP and PSW for Windows Server 2019 and Windows 10.
     if (($LaunchConfiguration -ne "SGX1FLC-NoIntelDrivers") -and ($LaunchConfiguration -ne "SGX1-NoIntelDrivers")) {
         Install-PSW
     }
@@ -648,7 +570,7 @@ function Install-DCAP-Dependencies {
         Throw "Failed to install nuget EnclaveCommonAPI"
     }
 
-    if (($LaunchConfiguration -eq "SGX1FLC") -or (${OS_VERSION} -eq "WinServer2019"))
+    if ($LaunchConfiguration -eq "SGX1FLC")
     {
         # Please refer to Intel's Windows DCAP documentation for this registry setting: https://download.01.org/intel-sgx/dcap-1.2/windows/docs/Intel_SGX_DCAP_Windows_SW_Installation_Guide.pdf
         New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\sgx_lc_msr\Parameters" -Name "SGX_Launch_Config_Optin" -Value 1 -PropertyType DWORD -Force
@@ -672,6 +594,12 @@ function Install-NSIS {
                  -EnvironmentPath @($installDir, "${installDir}\Bin")
 }
 
+function Install-Docker {
+    Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+    Install-Module -Name DockerMsftProvider -Repository PSGallery -Force
+    Install-Package -Name docker -ProviderName DockerMsftProvider -Force
+}
+
 try {
     Start-LocalPackagesDownload
 
@@ -679,18 +607,23 @@ try {
     Install-Nuget
     Install-Python3
     Install-VisualStudio
-    Install-OpenSSL
     Install-LLVM
     Install-Git
     Install-Shellcheck
     Install-NSIS
 
+    if ($InstallDocker) {
+        Install-Docker
+    }
+
     if (($LaunchConfiguration -ne "SGX1FLC-NoIntelDrivers") -and ($LaunchConfiguration -ne "SGX1-NoIntelDrivers") -or ($DCAPClientType -eq "Azure")) {
         Install-DCAP-Dependencies
     }
-
+    # There is a bug with the dcap dependency installation where it will overwrite the installation path folder. 
+    # This is a bug in the upstream DCAP package itself. 
+    # As we want OpenSSL installed in the same location to be picked up automatically by cmake, just install after dcap installation.
+    Install-OpenSSL
     Install-VCRuntime
-
 
     # The Open Enclave source directory tree might have file paths exceeding
     # the default limit of 260 characters (especially the 3rd party libraries

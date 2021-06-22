@@ -53,10 +53,10 @@ if (UNIX)
     # the CMAKE_C_COMPILER cmake variable has been passed to cmake, use the C compiler
     # that has been specified. Otherwise, prefer clang. Same for C++ compiler.
     if (NOT DEFINED ENV{CC} AND NOT DEFINED CMAKE_C_COMPILER)
-      find_program(CMAKE_C_COMPILER clang-8 clang)
+      find_program(CMAKE_C_COMPILER clang-10 clang)
     endif ()
     if (NOT DEFINED ENV{CXX} AND NOT DEFINED CMAKE_CXX_COMPILER)
-      find_program(CMAKE_CXX_COMPILER clang++-8 clang++)
+      find_program(CMAKE_CXX_COMPILER clang++-10 clang++)
     endif ()
   endif ()
 endif ()
@@ -101,6 +101,13 @@ string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
 list(APPEND uppercase_build_type "DEBUG" "RELEASE" "RELWITHDEBINFO")
 if (NOT uppercase_CMAKE_BUILD_TYPE IN_LIST uppercase_build_type)
   message(FATAL_ERROR "UNKNOWN CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+endif ()
+
+if (uppercase_CMAKE_BUILD_TYPE STREQUAL "RELEASE")
+  message(
+    WARNING "The `Release` build type has been deprecated. "
+            "Build problems may occur. Consider using `RelWithDebInfo` instead."
+  )
 endif ()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
@@ -261,6 +268,9 @@ include(package_settings)
 # See `cmake/add_enclave.cmake` for enclave creation logic
 include(add_enclave)
 
+# See `cmake/fuzzer_settings.cmake` to build target with fuzzing flags enabled
+include(fuzzer_settings)
+
 # TODO: See #756: Fix this because it is incompatible with
 # multi-configuration generators
 if (uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
@@ -293,6 +303,8 @@ if (NOT USE_SNMALLOC)
 endif ()
 
 option(BUILD_TESTS "Build OE tests" ON)
+option(ENABLE_FUZZING "Build OE with fuzzing flags enabled" OFF)
+option(BUILD_OEUTIL_TOOL "Build oeutil tool" ON)
 
 # For EEID see https://github.com/openenclave/openenclave/pull/2647
 option(

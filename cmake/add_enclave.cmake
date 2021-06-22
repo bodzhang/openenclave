@@ -204,7 +204,7 @@ function (add_enclave_sgx)
   elseif (ENCLAVE_CRYPTO_LIB_LOWER STREQUAL "openssl")
     enclave_link_libraries(${ENCLAVE_TARGET} oecryptoopenssl)
   else ()
-    message(FATAL_ERROR "Unsupported crypto library ${ENCLAVE_CRYPTO_LIB}.")
+    message(WARNING "Unsupported crypto library ${ENCLAVE_CRYPTO_LIB}.")
   endif ()
 
   if (ENCLAVE_CXX)
@@ -213,6 +213,13 @@ function (add_enclave_sgx)
   if (USE_DEBUG_MALLOC)
     enclave_link_libraries(${ENCLAVE_TARGET} oedebugmalloc)
   endif ()
+
+  # Explictly disable the use of RPATH. Without this, the RPATH will be used
+  # by default when linking against shared libraries, which injects the string
+  # of an absolute path into the .dynstr section and affects the enclave measurement.
+  set(CMAKE_SKIP_RPATH
+      TRUE
+      PARENT_SCOPE)
 
   # Cross-compile if needed.
   if (USE_CLANGW)

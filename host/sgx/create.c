@@ -97,13 +97,22 @@ static bool _is_kss_supported()
     eax = ebx = ecx = edx = 0;
 
     // Obtain feature information using CPUID
-    oe_get_cpuid(0x12, 0x1, &eax, &ebx, &ecx, &edx);
+    oe_get_cpuid(CPUID_SGX_LEAF, 0x1, &eax, &ebx, &ecx, &edx);
 
     // Check if KSS (bit 7) is supported by the processor
-    if (!(eax & (1 << 7)))
-        return false;
-    else
-        return true;
+    return (eax & CPUID_SGX_KSS_MASK);
+}
+
+static bool _is_misc_region_supported()
+{
+    uint32_t eax, ebx, ecx, edx;
+    eax = ebx = ecx = edx = 0;
+
+    // Obtain feature information using CPUID
+    oe_get_cpuid(CPUID_SGX_LEAF, 0x0, &eax, &ebx, &ecx, &edx);
+
+    // Check if EXINFO is supported by the processor
+    return (ebx & CPUID_SGX_MISC_EXINFO_MASK);
 }
 
 static oe_result_t _add_filled_pages(
@@ -730,6 +739,7 @@ static oe_result_t _eeid_resign(
             properties->config.attributes,
             properties->config.product_id,
             properties->config.security_version,
+            &properties->config.flags,
             OE_DEBUG_SIGN_KEY,
             OE_DEBUG_SIGN_KEY_SIZE,
             properties->config.family_id,
@@ -848,6 +858,15 @@ oe_result_t oe_sgx_build_enclave(
     /* Validate the enclave prop_override structure */
     OE_CHECK(oe_sgx_validate_enclave_properties(&props, NULL));
 
+    /* If the OE_ENCLAVE_FLAG_DEBUG_AUTO is set and the OE_ENCLAVE_FLAG_DEBUG is
+     * cleared, set enclave->debug based on the attributes in the properties. */
+    if (!enclave->debug && oe_sgx_is_debug_auto_load_context(context))
+        enclave->debug = props.config.attributes & OE_SGX_FLAGS_DEBUG;
+
+    /* Update the flag in the context to ensure the flag will be set in SECS */
+    if (enclave->debug)
+        context->attributes.flags |= OE_ENCLAVE_FLAG_DEBUG;
+
     /* Consolidate enclave-debug-flag with create-debug-flag */
     if (props.config.attributes & OE_SGX_FLAGS_DEBUG)
     {
@@ -896,6 +915,13 @@ oe_result_t oe_sgx_build_enclave(
     {
         context->zero_base_enclave = false;
         context->start_addr = 0; /* NULL, let OS to select */
+    }
+    /* Check if the enclave is configured with CapturePFGPExceptions=1 */
+    if (props.config.flags.capture_pf_gp_exceptions)
+    {
+        /* Only opt into the feature if CPU (SGX2) supports the MISC region. */
+        if (_is_misc_region_supported())
+            context->capture_pf_gp_exceptions_enabled = 1;
     }
 
     if (props.config.attributes & OE_SGX_FLAGS_KSS)
@@ -987,6 +1013,42 @@ oe_result_t oe_sgx_build_enclave(
     /* Set the magic number only if we have actually created an enclave */
     if (context->type == OE_SGX_LOAD_TYPE_CREATE)
         enclave->magic = ENCLAVE_MAGIC;
+
+    // Create debugging structures only for debug enclaves.
+    if (enclave->debug)
+    {
+        oe_debug_enclave_t* debug_enclave =
+            (oe_debug_enclave_t*)calloc(1, sizeof(*debug_enclave));
+
+        debug_enclave->magic = OE_DEBUG_ENCLAVE_MAGIC;
+        debug_enclave->version = OE_DEBUG_ENCLAVE_VERSION;
+        debug_enclave->next = NULL;
+
+        debug_enclave->path = enclave->path;
+        debug_enclave->path_length = strlen(enclave->path);
+
+        debug_enclave->base_address = (void*)enclave->addr;
+        debug_enclave->size = enclave->size;
+
+        debug_enclave->tcs_array =
+            (sgx_tcs_t**)calloc(enclave->num_bindings, sizeof(sgx_tcs_t*));
+        for (uint64_t i = 0; i < enclave->num_bindings; ++i)
+        {
+            debug_enclave->tcs_array[i] = (sgx_tcs_t*)enclave->bindings[i].tcs;
+        }
+        debug_enclave->tcs_count = enclave->num_bindings;
+
+        debug_enclave->flags = 0;
+        if (enclave->debug)
+            debug_enclave->flags |= OE_DEBUG_ENCLAVE_MASK_DEBUG;
+        if (enclave->simulate)
+            debug_enclave->flags |= OE_DEBUG_ENCLAVE_MASK_SIMULATE;
+
+        enclave->debug_enclave = debug_enclave;
+
+        OE_CHECK(oeimage.sgx_get_debug_modules(
+            &oeimage, enclave, &enclave->debug_modules));
+    }
 
     result = OE_OK;
 
@@ -1143,38 +1205,17 @@ oe_result_t oe_create_enclave(
         OE_RAISE(OE_FAILURE);
     }
 
-    // Create debugging structures only for debug enclaves.
+    // Notify debugger above the enclave and any modules.
     if (enclave->debug)
     {
-        oe_debug_enclave_t* debug_enclave =
-            (oe_debug_enclave_t*)calloc(1, sizeof(*debug_enclave));
-
-        debug_enclave->magic = OE_DEBUG_ENCLAVE_MAGIC;
-        debug_enclave->version = OE_DEBUG_ENCLAVE_VERSION;
-        debug_enclave->next = NULL;
-
-        debug_enclave->path = enclave->path;
-        debug_enclave->path_length = strlen(enclave->path);
-
-        debug_enclave->base_address = (void*)enclave->addr;
-        debug_enclave->size = enclave->size;
-
-        debug_enclave->tcs_array =
-            (sgx_tcs_t**)calloc(enclave->num_bindings, sizeof(sgx_tcs_t*));
-        for (uint64_t i = 0; i < enclave->num_bindings; ++i)
+        oe_debug_notify_enclave_created(enclave->debug_enclave);
+        oe_debug_module_t* debug_module = enclave->debug_modules;
+        while (debug_module)
         {
-            debug_enclave->tcs_array[i] = (sgx_tcs_t*)enclave->bindings[i].tcs;
+            oe_debug_module_t* next = debug_module->next;
+            oe_debug_notify_module_loaded(debug_module);
+            debug_module = next;
         }
-        debug_enclave->num_tcs = enclave->num_bindings;
-
-        debug_enclave->flags = 0;
-        if (enclave->debug)
-            debug_enclave->flags |= OE_DEBUG_ENCLAVE_MASK_DEBUG;
-        if (enclave->simulate)
-            debug_enclave->flags |= OE_DEBUG_ENCLAVE_MASK_SIMULATE;
-
-        enclave->debug_enclave = debug_enclave;
-        oe_debug_notify_enclave_created(debug_enclave);
     }
 
     /* Enclave initialization invokes global constructors which could make
@@ -1240,6 +1281,16 @@ oe_result_t oe_terminate_enclave(oe_enclave_t* enclave)
 
     if (enclave->debug_enclave)
     {
+        while (enclave->debug_enclave->modules)
+        {
+            oe_debug_module_t* module = enclave->debug_enclave->modules;
+            oe_debug_notify_module_unloaded(module);
+            // Notification removes the module from the list of modules.
+            // Free the module here.
+            free((void*)module->path);
+            free(module);
+        }
+
         oe_debug_notify_enclave_terminated(enclave->debug_enclave);
         free(enclave->debug_enclave->tcs_array);
         free(enclave->debug_enclave);
@@ -1264,17 +1315,15 @@ oe_result_t oe_terminate_enclave(oe_enclave_t* enclave)
          * Track failures reported by the platform, but do not exit early */
         result = oe_sgx_delete_enclave(enclave);
 
-#if defined(_WIN32)
-
-        /* Release Windows events created during enclave creation */
         for (size_t i = 0; i < enclave->num_bindings; i++)
         {
             oe_thread_binding_t* binding = &enclave->bindings[i];
+#if defined(_WIN32)
+            /* Release Windows events created during enclave creation */
             CloseHandle(binding->event.handle);
+#endif
             free(binding->ocall_buffer);
         }
-
-#endif
 
         /* Free the path name of the enclave image file */
         free(enclave->path);

@@ -9,14 +9,14 @@
 #include <openenclave/corelibc/limits.h>
 #include <openenclave/internal/syscall/sys/uio.h>
 #include <openenclave/internal/syscall/types.h>
+#include <poll.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/epoll.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
-#include <sys/poll.h>
-#include <sys/signal.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
@@ -1484,4 +1484,27 @@ int oe_syscall_nanosleep_ocall(struct oe_timespec* req, struct oe_timespec* rem)
     errno = 0;
 
     return nanosleep((struct timespec*)req, (struct timespec*)rem);
+}
+
+/*
+**==============================================================================
+**
+** clock_nanosleep():
+**
+**==============================================================================
+*/
+
+int oe_syscall_clock_nanosleep_ocall(
+    oe_clockid_t clockid,
+    int flag,
+    struct oe_timespec* req,
+    struct oe_timespec* rem)
+{
+    errno = 0;
+
+    return clock_nanosleep(
+        (clockid_t)clockid,
+        (int)flag,
+        (struct timespec*)req,
+        (struct timespec*)rem);
 }

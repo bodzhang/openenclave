@@ -6,6 +6,7 @@
 #include <openenclave/enclave.h>
 #include <openenclave/internal/print.h>
 #include <openenclave/internal/syscall/device.h>
+#include <openenclave/internal/syscall/sys/syscall.h>
 #include <openenclave/internal/syscall/unistd.h>
 #include <openenclave/internal/tests.h>
 #include <stdio.h>
@@ -95,6 +96,9 @@ static void test_create_file(FILE_SYSTEM& fs, const char* tmp_dir)
 
     mkpath(path, tmp_dir, "alphabet");
 
+    /* File does not exist. */
+    OE_TEST(fs.access(path, F_OK) == -1);
+
     /* Open the file for output. */
     {
         const int flags = OE_O_CREAT | OE_O_TRUNC | OE_O_WRONLY;
@@ -113,6 +117,9 @@ static void test_create_file(FILE_SYSTEM& fs, const char* tmp_dir)
 
     /* Close the file. */
     OE_TEST(fs.close(file) == 0);
+
+    /* File exists. */
+    OE_TEST(fs.access(path, F_OK) == 0);
 }
 
 template <class FILE_SYSTEM>
@@ -826,6 +833,13 @@ void test_fs(const char* src_dir, const char* tmp_dir)
     {
         char buf[OE_PATH_MAX];
         OE_TEST(oe_getcwd(buf, sizeof(buf)));
+        OE_TEST(strcmp(buf, "/") == 0);
+    }
+
+    /* Test SYS_getcwd */
+    {
+        char buf[OE_PATH_MAX];
+        OE_TEST(syscall(OE_SYS_getcwd, buf, sizeof(buf)) == 2);
         OE_TEST(strcmp(buf, "/") == 0);
     }
 

@@ -34,6 +34,8 @@ static void _check_properties(
     OE_TEST(config->product_id == product_id);
     OE_TEST(config->security_version == security_version);
     OE_TEST(config->flags.zero_base == 0);
+    OE_TEST(config->flags.capture_pf_gp_exceptions == 0);
+    OE_TEST(config->flags.reserved == 0);
     OE_TEST(config->attributes == attributes);
 
     /* Initialize a zero-filled sigstruct */

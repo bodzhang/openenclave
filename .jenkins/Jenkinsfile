@@ -12,13 +12,13 @@ REPOSITORY_NAME = env.REPOSITORY_NAME ?: "openenclave/openenclave"
 BRANCH_NAME = env.BRANCH_NAME ?: "master"
 DOCKER_TAG = env.DOCKER_TAG ?: "latest"
 FULL_TEST_SUITE = env.FULL_TEST_SUITE ?: false
+// Regex that includes directory you want to ignore for CI builds.
+String IGNORED_DIRS = "^(docs|\\.jenkins/infrastructure)|\\.md\$"
 
 AGENTS_LABELS = [
+    "acc-ubuntu-20.04": env.UBUNTU_2004_CUSTOM_LABEL ?: "ACC-2004",
     "acc-ubuntu-18.04": env.UBUNTU_1804_CUSTOM_LABEL ?: "ACC-1804",
-    "ubuntu-nonsgx":    env.UBUNTU_NONSGX_CUSTOM_LABEL ?: "nonSGX",
-    "acc-rhel-8":       env.RHEL_8_CUSTOM_LABEL ?: "ACC-RHEL-8",
-    "acc-win2016":      env.WINDOWS_2016_CUSTOM_LABEL ?: "SGX-Windows-2016",
-    "acc-win2016-dcap": env.WINDOWS_2016_DCAP_CUSTOM_LABEL ?: "SGXFLC-Windows-2016-DCAP",
+    "ubuntu-nonsgx":    env.UBUNTU_NONSGX_CUSTOM_LABEL ?: "nonSGX-ubuntu-2004",
     "acc-win2019":      env.WINDOWS_2019_CUSTOM_LABEL ?: "SGX-Windows-2019",
     "acc-win2019-dcap": env.WINDOWS_2019_DCAP_CUSTOM_LABEL ?: "SGXFLC-Windows-2019-DCAP",
     "windows-nonsgx":   env.WINDOWS_NONSGX_CUSTOM_LABEL ?: "nonSGX-Windows"
@@ -29,6 +29,38 @@ properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '90',
                                       daysToKeepStr: '90',
                                       numToKeepStr: '180')),
             [$class: 'JobRestrictionProperty']])
+
+stage("Compare changes") {
+    node(AGENTS_LABELS["nonsgx"]) {
+        cleanWs()
+        checkout([
+            $class: 'GitSCM',
+            branches: scm.branches + [[name: '*/master']],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [[$class: 'SubmoduleOption',
+                            disableSubmodules: true,
+                            recursiveSubmodules: false,
+                            trackingSubmodules: false]], 
+            submoduleCfg: [],
+            userRemoteConfigs: scm.userRemoteConfigs
+        ])
+        // Check if git diff vs origin/master contains changes outside of ignored directories
+        gitChanges = sh (
+            script: """
+                    git diff --name-only HEAD origin/master | grep --invert-match --extended-regexp \'${IGNORED_DIRS}\' || true
+                    """,
+            returnStdout: true
+        ).trim()
+    }
+}
+
+// Skip build with a success if gitChanges is defined and empty (no changes outside of ignored directories).
+if (gitChanges != null && gitChanges == '') {
+    currentBuild.result = 'SUCCESS'
+    return
+} else {
+    println("Detected the follow file changes: " + gitChanges)
+}
 
 try {
     oe.emailJobStatus('STARTED')
@@ -48,12 +80,16 @@ try {
                      parameters: [string(name: 'REPOSITORY_NAME', value: REPOSITORY_NAME),
                                   string(name: 'BRANCH_NAME', value: BRANCH_NAME),
                                   string(name: 'DOCKER_TAG', value: DOCKER_TAG),
+                                  string(name: 'UBUNTU_2004_CUSTOM_LABEL', value: AGENTS_LABELS["acc-ubuntu-20.04"]),
                                   string(name: 'UBUNTU_1804_CUSTOM_LABEL', value: AGENTS_LABELS["acc-ubuntu-18.04"]),
                                   string(name: 'UBUNTU_NONSGX_CUSTOM_LABEL', value: AGENTS_LABELS["ubuntu-nonsgx"]),
-                                  string(name: 'RHEL_8_CUSTOM_LABEL', value: AGENTS_LABELS["acc-rhel-8"]),
                                   string(name: 'WINDOWS_NONSGX_CUSTOM_LABEL', value: AGENTS_LABELS["windows-nonsgx"]),
                                   string(name: 'OECI_LIB_VERSION', value: OECI_LIB_VERSION),
                                   booleanParam(name: 'FULL_TEST_SUITE',value: FULL_TEST_SUITE)]
+           },
+           "Intel Linux" : {
+               build job: '/pipelines/Intel-Agnostic',
+                     parameters: [booleanParam(name: 'FULL_TEST_SUITE',value: FULL_TEST_SUITE)]
            },
            "Azure Windows" : {
                build job: '/pipelines/Azure-Windows',
@@ -61,8 +97,6 @@ try {
                                   string(name: 'BRANCH_NAME', value: BRANCH_NAME),
                                   string(name: 'DOCKER_TAG', value: DOCKER_TAG),
                                   string(name: 'UBUNTU_NONSGX_CUSTOM_LABEL', value: AGENTS_LABELS["ubuntu-nonsgx"]),
-                                  string(name: 'WINDOWS_2016_CUSTOM_LABEL', value: AGENTS_LABELS["acc-win2016"]),
-                                  string(name: 'WINDOWS_2016_DCAP_CUSTOM_LABEL', value: AGENTS_LABELS["acc-win2016-dcap"]),
                                   string(name: 'WINDOWS_2019_CUSTOM_LABEL', value: AGENTS_LABELS["acc-win2019"]),
                                   string(name: 'WINDOWS_2019_DCAP_CUSTOM_LABEL', value: AGENTS_LABELS["acc-win2019-dcap"]),
                                   string(name: 'OECI_LIB_VERSION', value: OECI_LIB_VERSION),

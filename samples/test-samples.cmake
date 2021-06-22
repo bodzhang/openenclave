@@ -162,6 +162,7 @@ foreach (i RANGE ${len})
       STATUS "Samples test '${SAMPLE}-${CRYPTO_LIB}' with CMake running...")
     execute_process(COMMAND ${CMAKE_COMMAND} --build ${SAMPLE_BUILD_DIR}
                             --target run RESULT_VARIABLE TEST_RESULT)
+
     if (TEST_RESULT)
       message(
         WARNING "Samples test '${SAMPLE}-${CRYPTO_LIB}' with CMake failed!")

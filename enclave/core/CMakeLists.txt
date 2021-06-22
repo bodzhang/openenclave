@@ -287,6 +287,21 @@ elseif (OE_TRUSTZONE)
   enclave_compile_options(oecore PUBLIC -fvisibility=hidden ${OE_TZ_TA_C_FLAGS})
 endif ()
 
+if (OE_SGX)
+  list(
+    APPEND
+    DEFAULT_VISIBILITY
+    ${MUSL_SRC_DIR}/sting/memcmp.c
+    ${MUSL_SRC_DIR}/string/x86_64/memcpy.s
+    ${MUSL_SRC_DIR}/string/x86_64/memmove.s
+    ${MUSL_SRC_DIR}/string/x86_64/memset.s)
+
+  set_property(
+    SOURCE ${DEFAULT_VISIBILITY}
+    APPEND_STRING
+    PROPERTY COMPILE_FLAGS " -fvisibility=default")
+endif ()
+
 enclave_compile_options(oecore INTERFACE $<$<COMPILE_LANGUAGE:CXX>:-nostdinc++>)
 
 enclave_enable_code_coverage(oecore)
@@ -372,3 +387,5 @@ install_enclaves(
   ARCHIVE
   DESTINATION
   ${CMAKE_INSTALL_LIBDIR}/openenclave/enclave)
+
+enclave_enable_fuzzing(oecore)

@@ -27,7 +27,7 @@ def LinuxPackaging(String version, String build_type, String lvi_mitigation = 'N
                            cpack
                            ctest --output-on-failure --timeout ${CTEST_TIMEOUT_SECONDS}
                            """
-                oe.Run("clang-8", task)
+                oe.Run("clang-10", task)
                 azureUpload(storageCredentialId: 'oe_jenkins_storage_account', filesPath: 'build/*.deb', storageType: 'blobstorage', virtualPath: "${BRANCH_NAME}/${BUILD_NUMBER}/ubuntu/${version}/${build_type}/lvi-mitigation-${lvi_mitigation}/SGX1FLC/", containerName: 'oejenkins')
                 azureUpload(storageCredentialId: 'oe_jenkins_storage_account', filesPath: 'build/*.deb', storageType: 'blobstorage', virtualPath: "${BRANCH_NAME}/latest/ubuntu/${version}/${build_type}/lvi-mitigation-${lvi_mitigation}/SGX1FLC/", containerName: 'oejenkins')
             }
@@ -49,20 +49,18 @@ def WindowsPackaging(String version, String build_type, String lvi_mitigation = 
 
 try{
     oe.emailJobStatus('STARTED')
-    parallel "1804 SGX1FLC Package Debug" :          { LinuxPackaging('1804', 'Debug') },
+    parallel "2004 SGX1FLC Package Debug" :          { LinuxPackaging('2004', 'Debug') },
+         "2004 SGX1FLC Package Debug LVI" :          { LinuxPackaging('2004', 'Debug', 'ControlFlow') },,
+         "2004 SGX1FLC Package RelWithDebInfo" :     { LinuxPackaging('2004', 'RelWithDebInfo') },
+         "2004 SGX1FLC Package RelWithDebInfo LVI" : { LinuxPackaging('2004', 'RelWithDebInfo', 'ControlFlow') },
+         "1804 SGX1FLC Package Debug" :              { LinuxPackaging('1804', 'Debug') },
          "1804 SGX1FLC Package Debug LVI" :          { LinuxPackaging('1804', 'Debug', 'ControlFlow') },
-         "1804 SGX1FLC Package Release" :            { LinuxPackaging('1804', 'Release') },
-         "1804 SGX1FLC Package Release LVI" :        { LinuxPackaging('1804', 'Release', 'ControlFlow') },
          "1804 SGX1FLC Package RelWithDebInfo" :     { LinuxPackaging('1804', 'RelWithDebInfo') },
          "1804 SGX1FLC Package RelWithDebInfo LVI" : { LinuxPackaging('1804', 'RelWithDebInfo', 'ControlFlow') },
-         "Windows 2016 Debug" :                      { WindowsPackaging('2016','Debug') },
-         "Windows 2016 Debug LVI" :                  { WindowsPackaging('2016','Debug', 'ControlFlow') },
-         "Windows 2016 Release" :                    { WindowsPackaging('2016','Release') },
-         "Windows 2016 Release LVI" :                { WindowsPackaging('2016','Release', 'ControlFlow') },
          "Windows 2019 Debug" :                      { WindowsPackaging('2019','Debug') },
          "Windows 2019 Debug LVI" :                  { WindowsPackaging('2019','Debug', 'ControlFlow') },
-         "Windows 2019 Release" :                    { WindowsPackaging('2019','Release') },
-         "Windows 2019 Release LVI" :                { WindowsPackaging('2019','Release', 'ControlFlow') }
+         "Windows 2019 RelWithDebInfo" :             { WindowsPackaging('2019','RelWithDebInfo') },
+         "Windows 2019 RelWithDebInfo LVI" :         { WindowsPackaging('2019','RelWithDebInfo', 'ControlFlow') }
 } catch(Exception e) {
     println "Caught global pipeline exception :" + e
     GLOBAL_ERROR = e

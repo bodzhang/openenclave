@@ -8,6 +8,7 @@
 #include <openenclave/corelibc/stdlib.h>
 #include <openenclave/corelibc/string.h>
 #include <openenclave/internal/print.h>
+#include <openenclave/internal/random.h>
 #include <openenclave/internal/safemath.h>
 #include <openenclave/internal/syscall/device.h>
 #include <openenclave/internal/syscall/dirent.h>
@@ -69,6 +70,16 @@ OE_WEAK OE_DEFINE_SYSCALL1(SYS_chdir)
     char* path = (char*)arg1;
 
     return oe_chdir(path);
+}
+
+OE_WEAK OE_DEFINE_SYSCALL4_M(SYS_clock_nanosleep)
+{
+    oe_errno = 0;
+    oe_clockid_t clockid = (oe_clockid_t)arg1;
+    int flag = (int)arg2;
+    struct oe_timespec* req = (struct oe_timespec*)arg3;
+    struct oe_timespec* rem = (struct oe_timespec*)arg4;
+    return (long)oe_clock_nanosleep(clockid, flag, req, rem);
 }
 
 OE_WEAK OE_DEFINE_SYSCALL1_M(SYS_close)
@@ -345,7 +356,7 @@ OE_WEAK OE_DEFINE_SYSCALL2(SYS_getcwd)
     }
     else
     {
-        ret = (long)size;
+        ret = (long)oe_strlen(buf) + 1;
     }
 
     return ret;
@@ -536,6 +547,16 @@ OE_WEAK OE_WEAK OE_DEFINE_SYSCALL3(SYS_lseek)
     int whence = (int)arg3;
     return oe_lseek(fd, off, whence);
 }
+
+#if __x86_64__ || _M_X64
+OE_WEAK OE_DEFINE_SYSCALL2(SYS_lstat)
+{
+    OE_UNUSED(arg1);
+    OE_UNUSED(arg2);
+    oe_errno = OE_ENOSYS;
+    return -1;
+}
+#endif
 
 #if __x86_64__ || _M_X64
 OE_WEAK OE_DEFINE_SYSCALL2(SYS_mkdir)
@@ -1067,6 +1088,33 @@ OE_WEAK OE_DEFINE_SYSCALL2(SYS_umount2)
     return oe_umount(target);
 }
 
+OE_WEAK OE_DEFINE_SYSCALL3_M(SYS_getrandom)
+{
+    oe_errno = 0;
+    long ret = -1;
+    void* buf = (void*)arg1;
+    size_t buflen = (size_t)arg2;
+    unsigned int flags = (unsigned int)arg3;
+
+    /* Flags (e.g., GRND_RANDOM and GRND_NONBLOCK) are not supported. */
+    if (!buf || !buflen || flags)
+    {
+        oe_errno = OE_EINVAL;
+        goto done;
+    }
+
+    if (oe_random_internal(buf, buflen) != OE_OK)
+    {
+        oe_errno = OE_EAGAIN;
+        goto done;
+    }
+
+    ret = (long)buflen;
+
+done:
+    return ret;
+}
+
 static long _syscall(
     long number,
     long arg1,
@@ -1089,6 +1137,7 @@ static long _syscall(
         OE_SYSCALL_DISPATCH(SYS_bind, arg1, arg2, arg3);
         OE_SYSCALL_DISPATCH(SYS_chdir, arg1);
         OE_SYSCALL_DISPATCH(SYS_close, arg1);
+        OE_SYSCALL_DISPATCH(SYS_clock_nanosleep, arg1, arg2, arg3, arg4);
         OE_SYSCALL_DISPATCH(SYS_connect, arg1, arg2, arg3);
 #if __x86_64__ || _M_X64
         OE_SYSCALL_DISPATCH(SYS_creat, arg1, arg2);
@@ -1140,6 +1189,9 @@ static long _syscall(
         OE_SYSCALL_DISPATCH(SYS_listen, arg1, arg2);
         OE_SYSCALL_DISPATCH(SYS_lseek, arg1, arg2, arg3);
 #if __x86_64__ || _M_X64
+        OE_SYSCALL_DISPATCH(SYS_lstat, arg1, arg2);
+#endif
+#if __x86_64__ || _M_X64
         OE_SYSCALL_DISPATCH(SYS_mkdir, arg1, arg2);
 #endif
         OE_SYSCALL_DISPATCH(SYS_mkdirat, arg1, arg2, arg3);
@@ -1190,6 +1242,7 @@ static long _syscall(
 #endif
         OE_SYSCALL_DISPATCH(SYS_unlinkat, arg1, arg2, arg3);
         OE_SYSCALL_DISPATCH(SYS_umount2, arg1, arg2);
+        OE_SYSCALL_DISPATCH(SYS_getrandom, arg1, arg2, arg3);
     }
 
     oe_errno = OE_ENOSYS;

@@ -23,6 +23,13 @@ add_enclave(
 
 enclave_compile_features(cppException_enc PRIVATE cxx_generalized_initializers)
 
+# disable speculative load hardening if cxx compiler is clang
+# On windows cxx compiler used is always clang
+if (WIN32 OR CMAKE_CXX_COMPILER_ID MATCHES Clang)
+  enclave_compile_options(cppException_enc PRIVATE
+                          -mno-speculative-load-hardening)
+endif ()
+
 enclave_include_directories(
   cppException_enc PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR})

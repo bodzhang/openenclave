@@ -16,6 +16,7 @@
 #include "endorsements.h"
 #include "quote.h"
 #include "report.h"
+#include "tcbinfo.h"
 
 #if !defined(OE_BUILD_ENCLAVE)
 #include "../../host/sgx/sgxquoteprovider.h"
@@ -217,8 +218,10 @@ static oe_result_t _fill_with_known_claims(
     const sgx_evidence_format_type_t format_type,
     const oe_uuid_t* format_id,
     const uint8_t* report_body,
-    size_t report_body_size,
     const oe_sgx_endorsements_t* sgx_endorsements,
+    const oe_tcb_info_tcb_level_t* platform_tcb_level,
+    oe_datetime_t* valid_from,
+    oe_datetime_t* valid_until,
     oe_claim_t* claims,
     size_t claims_length,
     size_t* claims_added)
@@ -228,9 +231,9 @@ static oe_result_t _fill_with_known_claims(
     oe_identity_t* id = &parsed_report.identity;
     const sgx_report_body_t* sgx_report_body = NULL;
     size_t claims_index = 0;
-    oe_datetime_t valid_from = {0};
-    oe_datetime_t valid_until = {0};
     bool flag;
+    oe_sgx_tcb_status_t tcb_status =
+        oe_tcb_level_status_to_sgx_tcb_status(platform_tcb_level->status);
 
     if (claims_length < OE_REQUIRED_CLAIMS_COUNT + OE_SGX_REQUIRED_CLAIMS_COUNT)
         OE_RAISE(OE_INVALID_PARAMETER);
@@ -391,29 +394,37 @@ static oe_result_t _fill_with_known_claims(
 
     if (format_type != SGX_FORMAT_TYPE_LOCAL)
     {
-        // Get quote validity periods to get validity from and until claims.
-        OE_CHECK(oe_get_sgx_quote_validity(
-            report_body,
-            report_body_size,
-            sgx_endorsements,
-            &valid_from,
-            &valid_until));
+        // TCB status.
+        OE_CHECK(oe_sgx_add_claim(
+            &claims[claims_index++],
+            OE_CLAIM_TCB_STATUS,
+            sizeof(OE_CLAIM_TCB_STATUS),
+            &tcb_status,
+            sizeof(tcb_status)));
+
+        // TCB date.
+        OE_CHECK(oe_sgx_add_claim(
+            &claims[claims_index++],
+            OE_CLAIM_TCB_DATE,
+            sizeof(OE_CLAIM_TCB_DATE),
+            &platform_tcb_level->tcb_date,
+            sizeof(platform_tcb_level->tcb_date)));
 
         // Validity from.
         OE_CHECK(oe_sgx_add_claim(
             &claims[claims_index++],
             OE_CLAIM_VALIDITY_FROM,
             sizeof(OE_CLAIM_VALIDITY_FROM),
-            &valid_from,
-            sizeof(valid_from)));
+            valid_from,
+            sizeof(*valid_from)));
 
         // Validity to.
         OE_CHECK(oe_sgx_add_claim(
             &claims[claims_index++],
             OE_CLAIM_VALIDITY_UNTIL,
             sizeof(OE_CLAIM_VALIDITY_UNTIL),
-            &valid_until,
-            sizeof(valid_until)));
+            valid_until,
+            sizeof(*valid_until)));
 
         // TCB info
         OE_CHECK(oe_sgx_add_claim(
@@ -530,6 +541,9 @@ oe_result_t oe_sgx_extract_claims(
     const uint8_t* custom_claims_buffer,
     size_t custom_claims_buffer_size,
     const oe_sgx_endorsements_t* sgx_endorsements,
+    const oe_tcb_info_tcb_level_t* platform_tcb_level,
+    oe_datetime_t* valid_from,
+    oe_datetime_t* valid_until,
     oe_claim_t** claims_out,
     size_t* claims_length_out)
 {
@@ -540,6 +554,8 @@ oe_result_t oe_sgx_extract_claims(
     size_t claims_added = 0;
     size_t additional_claim = 0;
     sgx_report_data_t report_data;
+    oe_datetime_t local_valid_from = {0};
+    oe_datetime_t local_valid_until = {0};
 
     // Note: some callers can have custom_claims_buffer pointing to a non-NULL
     // buffer containing a zero-sized array.
@@ -586,13 +602,30 @@ oe_result_t oe_sgx_extract_claims(
     if (claims == NULL)
         OE_RAISE(OE_OUT_OF_MEMORY);
 
+    if (!valid_from || !valid_until)
+    {
+        // Get quote validity periods to get validity from and until claims if
+        // valid_from and valid_until is not provided.
+        OE_CHECK(oe_get_sgx_quote_validity(
+            report_body,
+            report_body_size,
+            sgx_endorsements,
+            NULL,
+            &local_valid_from,
+            &local_valid_until));
+        valid_from = &local_valid_from;
+        valid_until = &local_valid_until;
+    }
+
     // Fill the list with the known claims.
     OE_CHECK(_fill_with_known_claims(
         format_type,
         format_id,
         report_body,
-        report_body_size,
         sgx_endorsements,
+        platform_tcb_level,
+        valid_from,
+        valid_until,
         claims,
         claims_length,
         &claims_added));
@@ -648,10 +681,14 @@ oe_result_t oe_sgx_verify_evidence(
     size_t* claims_length)
 {
     oe_result_t result = OE_UNEXPECTED;
+    oe_result_t result_verify_quote = OE_UNEXPECTED;
     oe_datetime_t* time = NULL;
+    oe_datetime_t valid_from = {0};
+    oe_datetime_t valid_until = {0};
     uint8_t* local_endorsements_buffer = NULL;
     size_t local_endorsements_buffer_size = 0;
     oe_sgx_endorsements_t sgx_endorsements;
+    oe_tcb_info_tcb_level_t platform_tcb_level = {{0}};
     sgx_evidence_format_type_t format_type = SGX_FORMAT_TYPE_UNKNOWN;
     const uint8_t* report_body = NULL;
     size_t report_body_size = 0;
@@ -788,8 +825,31 @@ oe_result_t oe_sgx_verify_evidence(
             &sgx_endorsements));
 
         // Verify the quote now.
-        OE_CHECK(oe_verify_quote_with_sgx_endorsements(
-            report_body, report_body_size, &sgx_endorsements, time));
+        OE_CHECK_NO_TCB_LEVEL(
+            result_verify_quote,
+            oe_verify_quote_with_sgx_endorsements(
+                report_body,
+                report_body_size,
+                &sgx_endorsements,
+                time,
+                &platform_tcb_level,
+                &valid_from,
+                &valid_until));
+
+        // A successful oe_verify_quote_with_sgx_endorsements() returns either
+        // OE_OK, or OE_TCB_LEVEL_INVALID as OE does not terminate verification
+        // due to TCB status not being up to date. So, the verification result
+        // should be consistent with the retrieved TCB status.
+        if ((result_verify_quote == OE_OK) !=
+            (platform_tcb_level.status.fields.up_to_date == 1))
+        {
+            OE_RAISE_MSG(
+                OE_CONSTRAINT_FAILED,
+                "Inconsistent TCB status: verify quote(%s), tcb status(%s)",
+                oe_result_str(result_verify_quote),
+                oe_sgx_tcb_status_str(oe_tcb_level_status_to_sgx_tcb_status(
+                    platform_tcb_level.status)));
+        }
     }
 
     // Last step is to return the required and custom claims.
@@ -803,6 +863,9 @@ oe_result_t oe_sgx_verify_evidence(
             custom_claims_buffer,
             custom_claims_buffer_size,
             &sgx_endorsements,
+            &platform_tcb_level,
+            &valid_from,
+            &valid_until,
             claims,
             claims_length));
 
@@ -821,7 +884,7 @@ oe_result_t oe_sgx_verify_evidence(
         }
     }
 
-    result = OE_OK;
+    result = format_type == SGX_FORMAT_TYPE_LOCAL ? OE_OK : result_verify_quote;
 
 done:
     if (local_endorsements_buffer)

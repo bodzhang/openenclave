@@ -98,6 +98,9 @@ void enc_edl_opt_out()
 
     /* time.edl */
     OE_TEST(oe_syscall_nanosleep_ocall(NULL, NULL, NULL) == OE_UNSUPPORTED);
+    OE_TEST(
+        oe_syscall_clock_nanosleep_ocall(NULL, 0, 0, NULL, NULL) ==
+        OE_UNSUPPORTED);
 
     /* unistd.edl */
     OE_TEST(oe_syscall_getpid_ocall(NULL) == OE_UNSUPPORTED);
@@ -128,13 +131,8 @@ void enc_edl_opt_out()
         oe_result_t result = OE_OK;
 
         OE_TEST(
-            oe_get_supported_attester_format_ids_ocall(
-                &result, NULL, 0, NULL) == OE_UNSUPPORTED);
-        OE_TEST(result == OE_UNSUPPORTED);
-        result = OE_OK;
-        OE_TEST(
-            oe_get_supported_attester_format_ids_ocall(
-                &result, NULL, 0, NULL) == OE_UNSUPPORTED);
+            oe_get_supported_attester_format_ids_ocall(&result, NULL) ==
+            OE_UNSUPPORTED);
         OE_TEST(result == OE_UNSUPPORTED);
         result = OE_OK;
         OE_TEST(

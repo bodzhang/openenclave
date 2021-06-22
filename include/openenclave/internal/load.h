@@ -7,6 +7,7 @@
 #include <openenclave/bits/defs.h>
 #include <openenclave/bits/result.h>
 #include <openenclave/bits/types.h>
+#include <openenclave/internal/debugrt/host.h>
 #include <openenclave/internal/elf.h>
 #include "types.h"
 
@@ -39,8 +40,11 @@ struct _oe_enclave_elf_image
 {
     elf64_t elf;
 
-    char* image_base;  /* Base of the loaded segment contents */
-    size_t image_size; /* Size of all loaded segment contents */
+    const char* path; /* Path of the ELF binary */
+
+    char* image_base;   /* Base of the loaded segment contents */
+    uint64_t image_rva; /* RVA of the loaded segment contents */
+    size_t image_size;  /* Size of all loaded segment contents */
 
     /* Cached properties of loadable segments for enclave page add */
     oe_elf_segment_t* segments;
@@ -89,6 +93,10 @@ struct _oe_enclave_image
      * other enclave binary formats are supported later */
     oe_enclave_elf_image_t elf;
 
+    /* Pointer to the dependent image for the enclave
+     * Only up to one such .so dependecy is currently allowed */
+    oe_enclave_elf_image_t* submodule;
+
     /* Image type specific callbacks to handle enclave loading */
     oe_result_t (
         *calculate_size)(const oe_enclave_image_t* image, size_t* image_size);
@@ -104,6 +112,11 @@ struct _oe_enclave_image
         uint64_t* vaddr);
 
     oe_result_t (*sgx_patch)(oe_enclave_image_t* image, size_t enclave_size);
+
+    oe_result_t (*sgx_get_debug_modules)(
+        oe_enclave_image_t* image,
+        oe_enclave_t* enclave,
+        oe_debug_module_t** modules);
 
     oe_result_t (*sgx_load_enclave_properties)(
         const oe_enclave_image_t* image,

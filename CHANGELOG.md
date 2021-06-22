@@ -10,6 +10,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased][Unreleased_log]
 --------------
 
+[v0.17.0][v0.17.0_log]
+--------------
+### Security
+- OE SDK is now built using clang-10. It is required to upgrade the compiler to clang-10 if you are building the SDK from source.
+
+### Added
+- Add the CapturePFGPExceptions preference for the SGX2 feature of capturing #PF and #GP exceptions inside an enclave.
+  - Developers can specify the CapturePFGPExceptions with a binary value in the enclave config file or set the value via the newly added OE_SET_ENCLAVE_SGX2 macro, which is used to set SGX2-specific properties.
+  - When setting CapturePFGPExceptions=1, the OE loader will enable the feature when running on an SGX2-capable CPU.
+  - Once enabled, the in-enclave exception handler can capture the #PF (with the OE_EXCEPTION_PAGE_FAULT code) and #GP (with the code OE_EXCEPTION_ACCESS_VIOLATION code) exceptions.
+  - More information about the exceptions can be found in the `faulting_address` and `error_code` members of the `oe_exception_record_t` structure passed into the handler.
+- Add the following attestation claims from oe_verify_evidence():
+  - OE_CLAIM_TCB_STATUS
+  - OE_CLAIM_TCB_DATE
+- Publish tool `oeutil`.
+  - The tool, currently under the tools directory, will [integrate multiple OE utilities](tools/oeutil/README.md) in the future.
+  - The tool integrated `oegenerate` in this release.
+- SGX enclaves created using OE SDK can now be debugged using `oelldb`.
+  `oelldb` is a python based extension for LLDB that supports debugging SGX enclaves. lldb-7 or above is required.
+
+
+### Deprecated
+- The `Release` build type for building the Open Enclave SDK from source is deprecated. The recommendation is using `RelWithDebInfo` instead.
+
+[v0.16.1][v0.16.1_log]
+--------------
+### Added
+- Add the support for SGX quote verification collateral version 3 with the CRL in DER format by default. Refer to [Get Quote Verification Collateral](https://download.01.org/intel-sgx/sgx-dcap/1.10/linux/docs/Intel_SGX_ECDSA_QuoteLibReference_DCAP_API.pdf) section 3.3.1.5.
+
+[v0.16.0][v0.16.0_log]
+--------------
+### Added
+- Add the initial support of cryptographic module loading in SGX enclaves. Refer to the [design document](docs/DesignDocs/CryptoModuleLoadingSupport.md) for more detail.
+- Add the support of getrandom libc API and syscall in enclaves.
+- Add `libsgx-quote-ex`, `sgx-aesm-service` and several SGX AESM plugins to Ansible scripts so that users will be able to select in-process or out-of-process call path for quote generation. Refer to the [attestation sample](samples/attestation/README.md#determining-call-path-for-sgx-quote-generation) for more information.
+- Open Enclave SDK installation on Linux sets the environment variable "SGX_AESM_ADDR" to 1 to enable attestation quote generation to occur out of the application process.
+- Add the support of the OE_ENCLAVE_FLAG_DEBUG_AUTO flag to the oe_create_enclave API. When the flag is set and the OE_ENCLAVE_FLAG_DEBUG flag is cleared, the debug mode is automatically turned on/off based on the value of Debug specified in the enclave config file.
+- Publish test tool `oegenerate`.
+  - The tool, currently under the tools directory, was originally named oecert under the tests/tools directory.
+  - The tool can be used to generate certificates, reports, and evidence in various formats.
+  - The tool is for debugging purposes and is not suitable for production use.
+- Full support for SGX KSS (Key Separation and Sharing) including
+  - FamilyID and ExtendedProductionID in enclave configuration file. Refer to [Build and Sign an Enclave](docs/GettingStartedDocs/buildandsign.md) for more information.
+  - config_id and config_svn at enclave loading time. Refer to [Open Enclave Init-time Configuration Interface](docs/DesignDocs/InitTimeConfigurationInterface.md) for more information.
+
+### Changed
+- The OpenEnclave CMake configuration now explicitly sets CMAKE_SKIP_RPATH to TRUE. This change should not affect fully static-linked enclaves.
+- oe_verify_attestation_certificate_with_evidence() has been considered insufficient for security and deprecated, because it does not allow users to pass in optional endorsements and policies. Use the new, experimental oe_verify_attestation_certificate_with_evidence_v2() instead to generate a self-signed certificate for use in the TLS handshaking process.
+  - Refer to the [issue](https://github.com/openenclave/openenclave/issues/3820) and the [proposed attestation API requirements](docs/DesignDocs/AttestationApiRequirements.md) for more details.
+- In/out parameters in EDL now have the default count equals to one if the `count` attribute is not used.
+- Improved attestation evidence verification performance.
+- Open Enclave SDK will be built with clang-10 starting v0.17.0 release. We had originally planned to upgrade to clang-10 in the v0.16.0 release, but ran into some issues. We recommend that developers move to clang-10 starting v0.17.0 release.
+
+### Security
+- Update MUSL to version 1.2.2. Refer to MUSL release notes between version 1.1.22 to 1.2.2 for the set of issues addressed.
+
+[v0.15.0][v0.15.0_log]
+--------------
 ### Added
 - Oeedger8r now supports the warning flag -W<option>. The available options include:
   - -Wreturn-ptr: Check if an OCALL or ECALL returns a pointer.
@@ -21,12 +79,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - -Werror: Turn warnings into errors.
   - -Werror=<option>: Turn the specified warning into an error.
 - oesign sign now allows option -o/--output-file, to specify location to write signature of enclave image.
+- Debugger Contract has been extended to support multiple modules.
+  - Refer to [design document](docs/DesignDocs/DebuggerSupportForMultiModuleEnclaves.md) for details.
 
 ### Changed
-- oe_get_attestation_certificate_with_evidence() has been deprecated because it has been deemed insufficient for security. Use the new, experimental oe_get_attestation_certificate_with_evidence_v2() instead to generate a self-signed certificate for use in the TLS handshaking process.
+- oe_get_attestation_certificate_with_evidence() has been considered insufficient for security and deprecated, because it does not allow users to pass in a provided nonce or additional customized information. Use the new, experimental oe_get_attestation_certificate_with_evidence_v2() instead to generate a self-signed certificate for use in the TLS handshaking process.
+  - Refer to the [issue](https://github.com/openenclave/openenclave/issues/3820) and the [proposed attestation API requirements](docs/DesignDocs/AttestationApiRequirements.md#getevidence-call) for more details.
+- Debugger Contract
+  - `path` fields in `oe_debug_enclave_t` and `oe_debug_module_t` are now defined to be in
+    UTF-8 encoding. Previously the encoding was undefined. To ensure smooth transition, debuggers
+	are required to try out both UTF-8 as well as the previous encoding and pick the one that works.
 
 ### Security
-- Update mbedTLS to version 2.16.9. Refer to the [2.16.9](https://github.com/ARMmbed/mbedtls/releases/tag/v2.16.9) release notes for the set of issues addressed.
+- Update mbedTLS to version 2.16.10. Refer to the [2.16.10](https://github.com/ARMmbed/mbedtls/releases/tag/v2.16.10) and [2.16.9](https://github.com/ARMmbed/mbedtls/releases/tag/v2.16.9) release notes for the set of issues addressed.
+
+- OPENSSL is updated to version 1.1.1k.
 
 [v0.14.0][v0.14.0_log]
 --------------
@@ -589,7 +656,15 @@ as listed below.
 
 Initial private preview release, no longer supported.
 
-[Unreleased_log]:https://github.com/openenclave/openenclave/compare/v0.14.0...HEAD
+[Unreleased_log]:https://github.com/openenclave/openenclave/compare/v0.17.0...HEAD
+
+[v0.17.0_log]:https://github.com/openenclave/openenclave/compare/v0.16.1...v0.17.0
+
+[v0.16.1_log]:https://github.com/openenclave/openenclave/compare/v0.16.0...v0.16.1
+
+[v0.16.0_log]:https://github.com/openenclave/openenclave/compare/v0.15.0...v0.16.0
+
+[v0.15.0_log]:https://github.com/openenclave/openenclave/compare/v0.14.0...v0.15.0
 
 [v0.14.0_log]:https://github.com/openenclave/openenclave/compare/v0.13.0...v0.14.0
 

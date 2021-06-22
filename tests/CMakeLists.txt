@@ -29,6 +29,14 @@ if (OE_SGX)
   set(DEFINE_OE_SGX "-DOE_SGX")
 endif ()
 
+if (UNIX)
+  # On Linux prefer python3 since python may not be available.
+  find_program(PYTHON NAMES python3 python)
+else ()
+  # On Windows and other systems, use the available python executable.
+  set(PYTHON "python")
+endif ()
+
 add_subdirectory(mem)
 add_subdirectory(safecrt)
 add_subdirectory(safemath)
@@ -108,8 +116,10 @@ if (UNIX
     add_subdirectory(libcxxrt)
     add_subdirectory(libunwind)
     add_subdirectory(mbed)
+    add_subdirectory(module_loading)
     add_subdirectory(ocall-create)
     add_subdirectory(oeedger8r)
+    add_subdirectory(pf_gp_exceptions)
     add_subdirectory(print)
     add_subdirectory(props)
     add_subdirectory(qeidentity)
@@ -143,6 +153,7 @@ if (UNIX
     endif ()
 
     if (BUILD_OPENSSL)
+      add_subdirectory(symcrypt_engine)
       add_subdirectory(openssl)
       add_subdirectory(openssl_unsupported)
     endif ()
@@ -151,6 +162,7 @@ if (UNIX
   add_subdirectory(c99_compliant)
   add_subdirectory(create-errors)
   add_subdirectory(crypto)
+  add_subdirectory(data_types)
   add_subdirectory(edl_opt_out)
   add_subdirectory(hexdump)
   add_subdirectory(hostcalls)

@@ -136,8 +136,23 @@ ELF_EXTERNC_BEGIN
 #define STT_LOPROC 13 /* Processor-specific use */
 #define STT_HIPROC 15
 
+/* elf64_dyn.d_tag */
+#define DT_NULL 0
+#define DT_NEEDED 1
+#define DT_STRTAB 5
+#define DT_SYMTAB 6
+#define DT_RELA 7
+#define DT_RELASZ 8
+#define DT_RELAENT 9
+#define DT_RPATH 15
+#define DT_RUNPATH 29
+#define DT_GNU_HASH 0x6ffffef5
+#define DT_VERSYM 0x6ffffff0
+
 /* elf64_rel.r_info */
+#define R_X86_64_64 1
 #define R_X86_64_GLOB_DAT 6
+#define R_X86_64_JUMP_SLOT 7
 #define R_X86_64_RELATIVE 8
 
 /* Supported thread-local storage relocations */
@@ -239,6 +254,16 @@ typedef struct
     /* File image size */
     size_t size;
 } elf64_t;
+
+typedef struct
+{
+    elf64_sxword_t d_tag;
+    union
+    {
+        elf64_xword_t d_val;
+        elf64_addr_t d_ptr;
+    } d_un;
+} elf64_dyn_t;
 
 int elf64_test_header(const elf64_ehdr_t* header);
 
@@ -346,6 +371,12 @@ elf64_ehdr_t* elf64_get_header(const elf64_t* elf);
 
 /* Return the name of the function that contains this address */
 const char* elf64_get_function_name(const elf64_t* elf, elf64_addr_t addr);
+
+/* Get the symbol table section header */
+size_t elf_find_shdr(const elf64_t* elf, const char* name);
+
+/* Get the section data */
+void* elf_get_section(const elf64_t* elf, size_t index);
 
 ELF_EXTERNC_END
 

@@ -16,7 +16,7 @@ IMAGE_ID = ""
 NOW = LocalDateTime.now()
 IMAGE_VERSION = NOW.format(DateTimeFormatter.ofPattern("yyyy")) + "." + \
                 NOW.format(DateTimeFormatter.ofPattern("MM")) + "." + \
-                NOW.format(DateTimeFormatter.ofPattern("dd"))
+                NOW.format(DateTimeFormatter.ofPattern("dd")) + env.BUILD_NUMBER
 DOCKER_TAG = "e2e-${IMAGE_VERSION}-${BUILD_NUMBER}"
 
 
@@ -35,26 +35,28 @@ println("IMAGE_ID: ${IMAGE_ID}")
 println("IMAGE_VERSION: ${IMAGE_VERSION}")
 println("DOCKER_TAG: ${DOCKER_TAG}")
 
-stage("Build Docker Images") {
+stage("Build Docker Containers") {
     build job: '/CI-CD_Infrastructure/OpenEnclave-Build-Docker-Images',
           parameters: [string(name: 'REPOSITORY_NAME', value: env.REPOSITORY),
                        string(name: 'BRANCH_NAME', value: env.BRANCH),
                        string(name: 'DOCKER_TAG', value: DOCKER_TAG),
                        string(name: 'AGENTS_LABEL', value: env.IMAGES_BUILD_LABEL),
+                       string(name: 'WINDOWS_AGENTS_LABEL', value: env.WINDOWS_IMAGES_BUILD_LABEL),
                        string(name: 'OECI_LIB_VERSION', value: OECI_LIB_VERSION),
-                       booleanParam(name: 'TAG_LATEST',value: false)]
+                       booleanParam(name: 'TAG_LATEST', value: false)]
 }
 
-stage("Build Jenkins Agents images") {
+stage("Build Jenkins Agents Images") {
     build job: '/CI-CD_Infrastructure/OpenEnclave-Build-Azure-Managed-Images',
           parameters: [string(name: 'REPOSITORY_NAME', value: env.REPOSITORY),
                        string(name: 'BRANCH_NAME', value: env.BRANCH),
-                       string(name: 'OE_DEPLOY_IMAGE', value: "oetools-deploy:${DOCKER_TAG}"),
+                       string(name: 'OE_DEPLOY_IMAGE', value: "oetools-20.04:${DOCKER_TAG}"),
                        string(name: 'OECI_LIB_VERSION', value: OECI_LIB_VERSION),
                        string(name: 'RESOURCE_GROUP', value: env.RESOURCE_GROUP),
                        string(name: 'GALLERY_NAME', value: env.E2E_IMAGES_GALLERY_NAME),
                        string(name: 'REPLICATION_REGIONS', value: env.REPLICATION_REGIONS),
                        string(name: 'IMAGE_ID', value: IMAGE_ID),
+                       string(name: 'IMAGE_VERSION', value: IMAGE_VERSION),
                        string(name: 'DOCKER_TAG', value: DOCKER_TAG),
                        string(name: 'AGENTS_LABEL', value: env.IMAGES_BUILD_LABEL)]
 }
@@ -67,9 +69,6 @@ stage("Run tests on new Agents") {
                        string(name: 'OECI_LIB_VERSION', value: OECI_LIB_VERSION),
                        string(name: 'UBUNTU_1804_CUSTOM_LABEL', value: env.UBUNTU_1804_LABEL),
                        string(name: 'UBUNTU_NONSGX_CUSTOM_LABEL', value: env.UBUNTU_NONSGX_LABEL),
-                       string(name: 'RHEL_8_CUSTOM_LABEL', value: env.RHEL_8_LABEL),
-                       string(name: 'WINDOWS_2016_CUSTOM_LABEL', value: env.WINDOWS_2016_LABEL),
-                       string(name: 'WINDOWS_2016_DCAP_CUSTOM_LABEL', value: env.WINDOWS_2016_DCAP_LABEL),
                        string(name: 'WINDOWS_2019_CUSTOM_LABEL', value: env.WINDOWS_2019_LABEL),
                        string(name: 'WINDOWS_2019_DCAP_CUSTOM_LABEL', value: env.WINDOWS_2019_DCAP_LABEL),
                        string(name: 'WINDOWS_NONSGX_CUSTOM_LABEL', value: env.WINDOWS_NONSGX_LABEL),

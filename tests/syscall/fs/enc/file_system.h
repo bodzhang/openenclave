@@ -131,12 +131,12 @@ class oe_fd_file_system
         return oe_rmdir(pathname);
     }
 
-    int stat(const char* pathname, struct oe_stat_t* buf)
+    int stat(const char* pathname, stat_type* buf)
     {
         return oe_stat(pathname, buf);
     }
 
-    int fstat(file_handle file, struct oe_stat_t* buf)
+    int fstat(file_handle file, stat_type* buf)
     {
         return oe_fstat(file, buf);
     }
@@ -149,6 +149,11 @@ class oe_fd_file_system
     int ftruncate(file_handle file, off_t length)
     {
         return oe_ftruncate(file, length);
+    }
+
+    int access(const char* pathname, int mode)
+    {
+        return oe_access(pathname, mode);
     }
 
   private:
@@ -192,7 +197,7 @@ class fd_file_system
   public:
     typedef int file_handle;
     typedef DIR* dir_handle;
-    typedef struct oe_stat_t stat_type;
+    typedef struct stat stat_type;
     typedef struct dirent dirent_type;
 
     static constexpr file_handle invalid_file_handle = -1;
@@ -296,12 +301,12 @@ class fd_file_system
         return ::rmdir(pathname);
     }
 
-    int stat(const char* pathname, struct oe_stat_t* buf)
+    int stat(const char* pathname, stat_type* buf)
     {
         return ::stat(pathname, (struct stat*)buf);
     }
 
-    int fstat(file_handle file, struct oe_stat_t* buf)
+    int fstat(file_handle file, stat_type* buf)
     {
         return ::fstat(file, (struct stat*)buf);
     }
@@ -314,6 +319,11 @@ class fd_file_system
     int ftruncate(file_handle file, off_t length)
     {
         return ::ftruncate(file, length);
+    }
+
+    int access(const char* pathname, int mode)
+    {
+        return ::access(pathname, mode);
     }
 
   private:
@@ -579,12 +589,12 @@ class stream_file_system
         return ::rmdir(pathname);
     }
 
-    int stat(const char* pathname, struct stat* buf)
+    int stat(const char* pathname, stat_type* buf)
     {
         return ::stat(pathname, buf);
     }
 
-    int fstat(file_handle file, struct stat* buf)
+    int fstat(file_handle file, stat_type* buf)
     {
         return ::fstat(fileno(file), buf);
     }
@@ -597,6 +607,11 @@ class stream_file_system
     int ftruncate(file_handle file, off_t length)
     {
         return ::ftruncate(fileno(file), length);
+    }
+
+    int access(const char* pathname, int mode)
+    {
+        return ::access(pathname, mode);
     }
 
   private:
