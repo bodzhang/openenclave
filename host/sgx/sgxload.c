@@ -411,16 +411,26 @@ oe_result_t oe_sgx_create_enclave(
     else
     {
         uint32_t enclave_error = 0;
-        base = oe_sgx_enclave_create_ex(
-            base_address,
-            secs->size,
-            enclave_commit_size,
-            ENCLAVE_TYPE_SGX1,
-            (const void*)secs,
-            sizeof(sgx_secs_t),
-            (const uint32_t)ex_features,
-            (const void**)(context->create_zero_base_enclave ? ex_features_array : NULL),
-            &enclave_error);
+        if (ex_features)
+            base = oe_sgx_enclave_create_ex(
+                base_address,
+                secs->size,
+                enclave_commit_size,
+                ENCLAVE_TYPE_SGX1,
+                (const void*)secs,
+                sizeof(sgx_secs_t),
+                (const uint32_t)ex_features,
+                (const void**)ex_features_array,
+                &enclave_error);
+        else
+            base = oe_sgx_enclave_create(
+                base_address,
+                secs->size,
+                enclave_commit_size,
+                ENCLAVE_TYPE_SGX1,
+                (const void*)secs,
+                sizeof(sgx_secs_t),
+                &enclave_error);
 
         if (!base)
             OE_RAISE_MSG(
