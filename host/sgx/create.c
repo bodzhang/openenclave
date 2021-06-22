@@ -620,6 +620,7 @@ oe_result_t oe_sgx_validate_enclave_properties(
     }
 
     if (properties->config.flags.create_zero_base_enclave)
+    {
         if (!oe_sgx_is_valid_start_addr(properties->config.start_addr))
         {
             if (field_name)
@@ -630,6 +631,7 @@ oe_result_t oe_sgx_validate_enclave_properties(
             result = OE_FAILURE;
             goto done;
         }
+    }
 
     if (!oe_sgx_is_valid_product_id(properties->config.product_id))
     {

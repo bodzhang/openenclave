@@ -87,8 +87,8 @@ typedef struct _oe_sgx_enclave_properties
     (OE_SGX_FLAGS_MODE64BIT | (ALLOW_DEBUG ? OE_SGX_FLAGS_DEBUG : 0) | \
      (REQUIRE_KSS ? OE_SGX_FLAGS_KSS : 0))
 
-#define OE_SE_PAGE_SIZE 0x1000
-#define OE_SE_PAGE_SIZE_MASK 0xFFF
+#define OE_SGX_PAGE_SIZE 0x1000
+#define OE_SGX_PAGE_SIZE_MASK 0xFFF
 #define OE_ADDRESS_ZERO 0x0
 
 /* Enable zero-base enclave */

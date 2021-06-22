@@ -193,16 +193,28 @@ void* oe_sgx_enclave_create_ex(
     uint32_t* enclave_error)
 {
     _load_sgx_enclave_common();
-    return _enclave_create_ex(
-        base_address,
-        virtual_size,
-        initial_commit,
-        type,
-        info,
-        info_size,
-        ex_features,
-        ex_features_p,
-        enclave_error);
+    if (ex_features)
+        return _enclave_create_ex(
+            base_address,
+            virtual_size,
+            initial_commit,
+            type,
+            info,
+            info_size,
+            ex_features,
+            ex_features_p,
+            enclave_error);
+    else
+    {
+        return _enclave_create(
+            base_address,
+            virtual_size,
+            initial_commit,
+            type,
+            info,
+            info_size,
+            enclave_error);
+    }
 }
 
 size_t oe_sgx_enclave_load_data(

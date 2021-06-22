@@ -32,7 +32,7 @@ OE_INLINE bool oe_sgx_is_valid_num_tcs(uint64_t x)
 
 OE_INLINE bool oe_sgx_is_valid_start_addr(uint64_t x)
 {
-    return (!(x & OE_SE_PAGE_SIZE_MASK));
+    return (!(x & OE_SGX_PAGE_SIZE_MASK));
 }
 
 OE_INLINE bool oe_sgx_is_unset_uuid(uint8_t* x)

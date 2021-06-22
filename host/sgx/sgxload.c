@@ -329,12 +329,9 @@ oe_result_t oe_sgx_create_enclave(
     oe_result_t result = OE_UNEXPECTED;
     void *base = NULL, *base_addr = NULL;
     sgx_secs_t* secs = NULL;
-    enclave_elrange_t* enclave_elrange;
+    enclave_elrange_t enclave_elrange;
     uint32_t ex_features = 0;
-    void* ex_features_array[32];
-
-    enclave_elrange = (enclave_elrange_t*)malloc(sizeof(enclave_elrange_t));
-    memset(ex_features_array, 0x0, sizeof(ex_features_array));
+    void* ex_features_array[32] = {0};
 
     if (enclave_addr)
         *enclave_addr = 0;
@@ -373,26 +370,25 @@ oe_result_t oe_sgx_create_enclave(
     /*
      * Load desired enclave start address. NOTE: Currently, this value is NULL
      * when zero base enclave is not enabled. Also, base_addr has to be a
-     * multiple of OE_SE_PAGE_SIZE.
+     * multiple of OE_SGX_PAGE_SIZE.
      */
     base_addr = (void*)context->start_addr;
-    if ((uint64_t)base_addr & OE_SE_PAGE_SIZE_MASK)
+    if ((uint64_t)base_addr & OE_SGX_PAGE_SIZE_MASK)
     {
         OE_RAISE(OE_INVALID_PARAMETER);
     }
 
     if (context->create_zero_base_enclave)
     {
-        enclave_elrange->enclave_image_address = (uint64_t)base_addr;
-        enclave_elrange->elrange_start_address = (uint64_t)OE_ADDRESS_ZERO;
-        enclave_elrange->elrange_size = enclave_size;
+        enclave_elrange.enclave_image_address = (uint64_t)base_addr;
+        enclave_elrange.elrange_start_address = (uint64_t)OE_ADDRESS_ZERO;
+        enclave_elrange.elrange_size = enclave_size;
 
         ex_features = ENCLAVE_CREATE_EX_EL_RANGE;
-        ex_features_array[ENCLAVE_CREATE_EX_EL_RANGE_BIT_IDX] = enclave_elrange;
+        ex_features_array[ENCLAVE_CREATE_EX_EL_RANGE_BIT_IDX] = &enclave_elrange;
     }
 
     /* Create SECS structure */
-    // TODO: Need to maybe modify
     if (!(secs = _new_secs((uint64_t)OE_ADDRESS_ZERO, enclave_size, context)))
         OE_RAISE(OE_OUT_OF_MEMORY);
 
